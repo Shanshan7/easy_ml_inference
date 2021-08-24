@@ -1,3 +1,0 @@
-/easy_data/one_class/build/CMakeFiles/rebuild_cache.dir
-/easy_data/one_class/build/CMakeFiles/DisplayImage.dir
-/easy_data/one_class/build/CMakeFiles/edit_cache.dir
