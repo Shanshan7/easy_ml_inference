@@ -7,6 +7,7 @@
 #include <opencv2/ml.hpp>
 
 #define KNEIGHBOURS (9)
+#define OUTPUTCHANNEL (1536)
 #define LENGTH (2515968)
 
 void preprocess(const cv::Mat &src_mat, const cv::Size dst_size, cv::Mat &dst_image)
@@ -30,45 +31,6 @@ void preprocess(const cv::Mat &src_mat, const cv::Size dst_size, cv::Mat &dst_im
     cv::merge(src_channels, dst_image);
 }
 
-int main()
-{
-    std::string model_file = "/easy_data/one_class/classnet.onnx";
-    std::string image_file = "/easy_data/one_class/000.png";
-    std::string embedding_file = "/easy_data/one_class/embedding.bin";
-
-    // int result = -1;
-    // float *tempOutput[1] = {NULL};
-    float* embedding_coreset = new float[LENGTH]();
-    std::ifstream f1(embedding_file, std::ios::binary);
-    if(f1)
-    {
-        f1.read(reinterpret_cast<char*>(&embedding_coreset), sizeof(float)*LENGTH);
-    }
-    f1.close();
-
-    for (int i = 0; i < 10; i++)
-    {
-        std::cout << embedding_coreset[i] << std::endl;
-    }
-
-    // cv::Mat image = cv::imread(image_file);
-    // cv::Mat dst_image;
-    // preprocess(image, cv::Size(224,224), dst_image);
-    // cv::dnn::Net net = cv::dnn::readNetFromONNX(model_file);
-    // cv::Mat blob = cv::dnn::blobFromImage(dst_image);
-    // net.setInput(blob);
-
-    // cv::Mat out = net.forward();
-
-    // float score;
-    // score = postprocess(embedding_coreset, out);
-    // std::cout << "out channel: " << out.channels() << " out height: " << out.rows \
-    //           << " out width: " << out.cols << std::endl;
-    // std::cout << out << std::endl;
-
-    return 0;
-}
-
 float postprocess(const cv::Mat &embedding_coreset, const cv::Mat &embedding_test)
 {
     const int K(KNEIGHBOURS);
@@ -81,6 +43,7 @@ float postprocess(const cv::Mat &embedding_coreset, const cv::Mat &embedding_tes
 
     cv::Mat result;
     knn->findNearest(embedding_test, K, result);
+    std::cout << "result: " << result.cols << " " << result.rows;
 
     float* max_neighbourts = (float*)result.data[0];
     std::cout << max_neighbourts << std::endl;
@@ -99,4 +62,44 @@ float postprocess(const cv::Mat &embedding_coreset, const cv::Mat &embedding_tes
     float score = 0.0;
 
     return score;
+}
+
+int main()
+{
+    std::string model_file = "/home/edge/easy_data/easy_ml_inference/cnn_runtime/one_class/segnet.onnx";
+    std::string image_file = "/home/edge/easy_data/easy_ml_inference/cnn_runtime/one_class/000.png";
+    //"/easy_data/easy_ml_inference/cnn_runtime/one_class/000.png";
+    std::string embedding_file = "/home/edge/easy_data/easy_ml_inference/cnn_runtime/one_class/embedding.bin";
+
+    // int result = -1;
+    // float *tempOutput[1] = {NULL};
+    float* embedding_coreset = new float[LENGTH];
+    std::ifstream embedding;
+    embedding.open(embedding_file, std::ifstream::binary);
+    embedding.read(reinterpret_cast<char*>(embedding_coreset), sizeof(float) * LENGTH);
+    embedding.close();
+
+    cv::Mat image = cv::imread(image_file);
+    cv::Mat dst_image;
+    preprocess(image, cv::Size(224,224), dst_image);
+    cv::dnn::Net net = cv::dnn::readNetFromONNX(model_file);
+    cv::Mat blob = cv::dnn::blobFromImage(dst_image);
+    net.setInput(blob);
+
+    cv::Mat out = net.forward();
+
+    float score;
+    std::cout << out.channels() << " " << out.rows << " " << out.cols << std::endl;
+    cv::Mat embedding_train(LENGTH/OUTPUTCHANNEL, OUTPUTCHANNEL, CV_32FC1);
+    memcpy(embedding_train.data, embedding_coreset, LENGTH*sizeof(float));
+    // for (int c = 0; c < 5; c++)
+    // {
+    //     std::cout << embedding_train.at<float>(c, 0) << " ";
+    // }
+    score = postprocess(embedding_train, embedding_train);
+    // std::cout << "out channel: " << out.channels() << " out height: " << out.rows \
+    //           << " out width: " << out.cols << std::endl;
+    // std::cout << out << std::endl;
+
+    return 0;
 }
