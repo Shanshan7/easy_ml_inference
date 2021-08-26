@@ -10,7 +10,7 @@
 #include <sys/time.h>
 
 #define KNEIGHBOURS (9)
-#define FEATUREWIDTH (1638)
+// #define FEATUREWIDTH (1638)
 #define FEATUREHEIGHT (1536)
 
 unsigned long get_current_time(void)
@@ -20,11 +20,12 @@ unsigned long get_current_time(void)
     return (tv.tv_sec*1000000 + tv.tv_usec);
 }
 
-void reshape_embedding(const cv::Mat &embedding_array, cv::Mat embedding_test)
+void reshape_embedding(const float *output, \
+                       cv::Mat embedding_test, \
+                       const int out_channel, \ 
+                       const int out_height, \
+                       const int out_width)
 {
-    int out_channel = embedding_array.size[1];
-    int out_height = embedding_array.size[2];
-    int out_width = embedding_array.size[3];
     for (int h = 0; h < out_height; h++)
     {
         for (int w = 0; w < out_width; w++)
@@ -32,7 +33,7 @@ void reshape_embedding(const cv::Mat &embedding_array, cv::Mat embedding_test)
             for (int c = 0; c < out_channel; c++)
             {
                 ((float*)embedding_test.data)[h*out_width*out_channel + w*out_channel + c] = 
-                    ((float*)embedding_array.data)[c*out_height*out_height + h*out_width + w];
+                    output[c*out_height*out_height + h*out_width + w];
                 // memcpy(embedding_test.data + h*out_width*out_channel + w*out_channel + c, \
                 // embedding_array.data + c*out_height*out_height + h*out_width + w, sizeof(float));
             }
@@ -62,15 +63,60 @@ void preprocess(const cv::Mat &src_mat, const cv::Size dst_size, cv::Mat &dst_im
     cv::merge(src_channels, dst_image);
 }
 
-float postprocess(const cv::Mat &embedding_coreset, const cv::Mat &embedding_test)
+float postprocess(const float *output, \ 
+                  const std::string &embedding_file, \ 
+                  const int out_channel, \ 
+                  const int out_height, \
+                  const int out_width)
 {
+    // float* embedding_coreset = new float[FEATUREWIDTH * FEATUREHEIGHT];
+    // std::ifstream embedding;
+    // embedding.open(embedding_file, std::ifstream::binary);
+    // // embedding.seekg(0, std::ios::end);
+    // // int len = embedding.tellg();
+    // // std::cout << len / sizeof(float) << std::endl;
+    // embedding.read(reinterpret_cast<char*>(embedding_coreset), sizeof(float) * FEATUREWIDTH * FEATUREHEIGHT);
+    // embedding.close();
+
+    std::ifstream embedding(embedding_file, std::ios::binary|std::ios::in);
+    embedding.seekg(0,std::ios::end);
+    int embedding_length = embedding.tellg() / sizeof(float);
+    embedding.seekg(0, std::ios::beg);
+    float* embedding_coreset = new float[embedding_length];
+    embedding.read(reinterpret_cast<char*>(embedding_coreset), sizeof(float) * embedding_length);
+    embedding.close();
+
+    for (int e = 0; e < 20; e++)
+    {
+        std::cout << output[e] << " ";
+    }
+    std::cout << "\n";
+
+    cv::Mat embedding_train(embedding_length / FEATUREHEIGHT, FEATUREHEIGHT, CV_32FC1);
+    cv::Mat embedding_test(out_height*out_width, out_channel, CV_32FC1);
+
+    memcpy(embedding_train.data, embedding_coreset, embedding_length * sizeof(float));
+    reshape_embedding(output, embedding_test, out_channel, out_height, out_width);
+
+    for (int a = 0; a < 20; a++)
+    {
+        std::cout << ((float*)embedding_train.data)[a] << " ";
+    }
+    std::cout << "\n";
+    for (int a = 0; a < 20; a++)
+    {
+        std::cout << ((float*)embedding_test.data)[a] << " ";
+    }
+    std::cout << "\n";
+
+    //----------------------------knn---------------------------
     const int K(KNEIGHBOURS);
     cv::Ptr<cv::ml::KNearest> knn = cv::ml::KNearest::create();
     knn->setDefaultK(K);
     knn->setAlgorithmType(cv::ml::KNearest::BRUTE_FORCE);
-    cv::Mat labels(embedding_coreset.rows, 1, CV_32FC1, cv::Scalar(0.0));
+    cv::Mat labels(embedding_train.rows, 1, CV_32FC1, cv::Scalar(0.0));
 
-    knn->train(embedding_coreset, cv::ml::ROW_SAMPLE, labels);
+    knn->train(embedding_train, cv::ml::ROW_SAMPLE, labels);
 
     cv::Mat result, neighborResponses, distances_mat;
     knn->findNearest(embedding_test, K, result, neighborResponses, distances_mat);
@@ -122,12 +168,6 @@ int main()
     std::string image_dir = "/home/edge/data/VOCdevkit/MVtec/bottle/JPEGImages/";
     std::string embedding_file = "/home/edge/easy_data/easy_ml_inference/cnn_runtime/one_class/embedding.bin";
 
-    float* embedding_coreset = new float[FEATUREWIDTH * FEATUREHEIGHT];
-    std::ifstream embedding;
-    embedding.open(embedding_file, std::ifstream::binary);
-    embedding.read(reinterpret_cast<char*>(embedding_coreset), sizeof(float) * FEATUREWIDTH * FEATUREHEIGHT);
-    embedding.close();
-
     cv::dnn::Net net = cv::dnn::readNetFromONNX(model_file);
 
     float scale = 1./57.63;
@@ -156,26 +196,18 @@ int main()
         net.setInput(blob, "one_class_input");
 
         cv::Mat out = net.forward("one_class_output");
+
         int out_channel = out.size[1];
         int out_height = out.size[2];
         int out_width = out.size[3];
+   
+        float* output = new float[out_channel * out_height * out_width];
+        memcpy(output, out.data, sizeof(float) * out_channel * out_height * out_width);
 
         float score;
-        cv::Mat embedding_train(FEATUREWIDTH, FEATUREHEIGHT, CV_32FC1);
-        cv::Mat embedding_test(out_height*out_width, out_channel, CV_32FC1);
-
-        memcpy(embedding_train.data, embedding_coreset, FEATUREWIDTH * FEATUREHEIGHT * sizeof(float));
-        reshape_embedding(out, embedding_test);
-       
-        // for (int a = 0; a < 20; a++)
-        // {
-        //     std::cout << ((float*)embedding_test.data)[a] << " ";
-        // }
-        // std::cout << "\n";
-
         unsigned long time_start, time_end;
         time_start = get_current_time();
-        score = postprocess(embedding_train, embedding_test);
+        score = postprocess(output, embedding_file, out_channel, out_height, out_width);
         time_end = get_current_time();
         std::cout << "one_class_net cost time: " <<  (time_end - time_start)/1000.0  << "ms" << std::endl;
         std::cout << "score: " << score << std::endl;
