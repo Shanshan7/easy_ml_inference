@@ -1,5 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
-project(DisplayImage)
+project(one_class_test)
 find_package(OpenCV REQUIRED)
-add_executable(DisplayImage ./one_class.cpp)
-target_link_libraries(DisplayImage ${OpenCV_LIBS})
+add_executable(one_class_test ./one_class.cpp)
+target_link_libraries(one_class_test ${OpenCV_LIBS})
