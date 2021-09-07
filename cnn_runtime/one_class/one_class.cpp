@@ -10,8 +10,6 @@
 #include <sys/time.h>
 
 #define KNEIGHBOURS (9)
-// #define FEATUREWIDTH (1638)
-#define FEATUREHEIGHT (1536)
 
 unsigned long get_current_time(void)
 {
@@ -92,7 +90,7 @@ float postprocess(const float *output, \
     }
     std::cout << "\n";
 
-    cv::Mat embedding_train(embedding_length / FEATUREHEIGHT, FEATUREHEIGHT, CV_32FC1);
+    cv::Mat embedding_train(embedding_length / out_channel, out_channel, CV_32FC1);
     cv::Mat embedding_test(out_height*out_width, out_channel, CV_32FC1);
 
     memcpy(embedding_train.data, embedding_coreset, embedding_length * sizeof(float));
