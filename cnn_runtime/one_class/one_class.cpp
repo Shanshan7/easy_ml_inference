@@ -6,38 +6,11 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/ml.hpp>
+#include "patchcore_postprocess.h"
 
 #include <sys/time.h>
 
 #define KNEIGHBOURS (9)
-
-unsigned long get_current_time(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (tv.tv_sec*1000000 + tv.tv_usec);
-}
-
-void reshape_embedding(const float *output, \
-                       cv::Mat embedding_test, \
-                       const int out_channel, \ 
-                       const int out_height, \
-                       const int out_width)
-{
-    for (int h = 0; h < out_height; h++)
-    {
-        for (int w = 0; w < out_width; w++)
-        {
-            for (int c = 0; c < out_channel; c++)
-            {
-                ((float*)embedding_test.data)[h*out_width*out_channel + w*out_channel + c] = 
-                    output[c*out_height*out_height + h*out_width + w];
-                // memcpy(embedding_test.data + h*out_width*out_channel + w*out_channel + c, \
-                // embedding_array.data + c*out_height*out_height + h*out_width + w, sizeof(float));
-            }
-        }
-    }
-}
 
 void preprocess(const cv::Mat &src_mat, const cv::Size dst_size, cv::Mat &dst_image)
 {
@@ -67,90 +40,28 @@ float postprocess(const float *output, \
                   const int out_height, \
                   const int out_width)
 {
-    // float* embedding_coreset = new float[FEATUREWIDTH * FEATUREHEIGHT];
-    // std::ifstream embedding;
-    // embedding.open(embedding_file, std::ifstream::binary);
-    // // embedding.seekg(0, std::ios::end);
-    // // int len = embedding.tellg();
-    // // std::cout << len / sizeof(float) << std::endl;
-    // embedding.read(reinterpret_cast<char*>(embedding_coreset), sizeof(float) * FEATUREWIDTH * FEATUREHEIGHT);
-    // embedding.close();
-
-    std::ifstream embedding(embedding_file, std::ios::binary|std::ios::in);
-    embedding.seekg(0,std::ios::end);
-    int embedding_length = embedding.tellg() / sizeof(float);
-    embedding.seekg(0, std::ios::beg);
-    float* embedding_coreset = new float[embedding_length];
-    embedding.read(reinterpret_cast<char*>(embedding_coreset), sizeof(float) * embedding_length);
-    embedding.close();
-
-    for (int e = 0; e < 20; e++)
-    {
-        std::cout << output[e] << " ";
-    }
-    std::cout << "\n";
-
-    cv::Mat embedding_train(embedding_length / out_channel, out_channel, CV_32FC1);
-    cv::Mat embedding_test(out_height*out_width, out_channel, CV_32FC1);
-
-    memcpy(embedding_train.data, embedding_coreset, embedding_length * sizeof(float));
-    reshape_embedding(output, embedding_test, out_channel, out_height, out_width);
-
-    for (int a = 0; a < 20; a++)
-    {
-        std::cout << ((float*)embedding_train.data)[a] << " ";
-    }
-    std::cout << "\n";
-    for (int a = 0; a < 20; a++)
-    {
-        std::cout << ((float*)embedding_test.data)[a] << " ";
-    }
-    std::cout << "\n";
-
-    //----------------------------knn---------------------------
-    const int K(KNEIGHBOURS);
-    cv::Ptr<cv::ml::KNearest> knn = cv::ml::KNearest::create();
-    knn->setDefaultK(K);
-    knn->setAlgorithmType(cv::ml::KNearest::BRUTE_FORCE);
-    cv::Mat labels(embedding_train.rows, 1, CV_32FC1, cv::Scalar(0.0));
-
-    knn->train(embedding_train, cv::ml::ROW_SAMPLE, labels);
-
-    cv::Mat result, neighborResponses, distances_mat;
-    knn->findNearest(embedding_test, K, result, neighborResponses, distances_mat);
-
-    int distanceMatWidth = distances_mat.size[0];
-    int distanceMatHeight = distances_mat.size[1];
-    // std::cout << "result: " << distances_mat.size[0] << " " << distances_mat.size[1] << std::endl;
-
-    // reshape 784 * 9 --> 9 * 784
-    float* distances = new float[distanceMatWidth*distanceMatHeight];
-    for (int d = 0; d < distanceMatHeight; d++)
-    {
-        for (int c = 0; c < distanceMatWidth; c++)
-        {
-            distances[d*distanceMatWidth + c] = ((float*)distances_mat.data)[c*distanceMatHeight + d];
-            // memcpy(distances + d*784 + c, distances_mat.data + c*9 + d, sizeof(float));
-        }
-    }
+    cv::Mat embedding_train = train_embedding_process(embedding_file, out_channel);
+    cv::Mat embedding_test = reshape_embedding(output, out_channel, out_height, out_width);
+    float* distances = new float[embedding_test.rows*KNEIGHBOURS];
+    knn_process(embedding_train, embedding_test, distances);
 
     int max_posit = std::max_element(distances, \
-				                distances + distanceMatWidth) - distances; // - distances.data;
+				                distances + embedding_test.rows) - distances; // - distances.data;
 
     // std::cout << "max_posit: " << max_posit << std::endl;
 
-    float* N_b = new float[distanceMatHeight];
-    for(int i = 0; i < distanceMatHeight; i++)
+    float* N_b = new float[KNEIGHBOURS];
+    for(int i = 0; i < KNEIGHBOURS; i++)
     {
-        N_b[i] = distances[i * distanceMatWidth + max_posit];
+        N_b[i] = distances[i * embedding_test.rows + max_posit];
     }
 
     float w, sum_N_b = 0;
-    for(int j = 0; j < distanceMatHeight; j++)
+    for(int j = 0; j < KNEIGHBOURS; j++)
     {
         sum_N_b += exp(N_b[j]);
     }
-    float max_N_b = *std::max_element(N_b, N_b + distanceMatHeight);
+    float max_N_b = *std::max_element(N_b, N_b + KNEIGHBOURS);
     w = (1 - exp(max_N_b) / sum_N_b);
 
     float score;
@@ -162,8 +73,8 @@ float postprocess(const float *output, \
 int main()
 {
     std::string model_file = "/home/edge/easy_data/easy_ml_inference/cnn_runtime/one_class/OneClassNet.onnx";
-    std::string image_txt_path = "/home/edge/data/VOCdevkit/MVtec/bottle/ImageSets/val.txt";
-    std::string image_dir = "/home/edge/data/VOCdevkit/MVtec/bottle/JPEGImages/";
+    std::string image_txt_path = "/home/edge/data/VOCdevkit/MVtec/grid/ImageSets/val.txt";
+    std::string image_dir = "/home/edge/data/VOCdevkit/MVtec/grid/JPEGImages/";
     std::string embedding_file = "/home/edge/easy_data/easy_ml_inference/cnn_runtime/one_class/embedding.bin";
 
     cv::dnn::Net net = cv::dnn::readNetFromONNX(model_file);
