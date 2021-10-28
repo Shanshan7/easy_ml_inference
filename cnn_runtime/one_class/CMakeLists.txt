@@ -7,6 +7,7 @@ add_definitions(-Ofast)
 set(PROJECTDIR ../../cnn_runtime/)
 
 include_directories(${PROJECTDIR}/one_class/)
+include_directories(${PROJECTDIR}/../3rd_party/hnswlib)
 
 #collect source files
 file(GLOB_RECURSE SRC_LIST

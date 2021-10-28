@@ -4,7 +4,11 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/ml.hpp>
 #include <fstream>
+#include <thread>
+#include <atomic>
 #include <sys/time.h>
+
+#include "hnswlib.h"
 
 unsigned long get_current_time(void);
 cv::Mat train_embedding_process(const std::string &embedding_file, const int output_channel);

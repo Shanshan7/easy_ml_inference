@@ -12,28 +12,6 @@
 
 #define KNEIGHBOURS (9)
 
-void preprocess(const cv::Mat &src_mat, const cv::Size dst_size, cv::Mat &dst_image)
-{
-    if(src_mat.empty()){
-        return;
-    }
-
-    cv::Mat resize_mat;
-    cv::resize(src_mat, resize_mat, dst_size, 0, 0, cv::INTER_LINEAR);
-
-    std::vector<float> mean_value{123.675,116.28,103.53};
-    std::vector<float> std_value{57.63,57.63,57.63};
-    std::vector<cv::Mat> src_channels(3);
-    cv::split(resize_mat, src_channels);
-
-    for (int i = 0; i < src_channels.size(); i++)
-    {
-        src_channels[i].convertTo(src_channels[i], CV_32FC1);
-        src_channels[i] = (src_channels[i] - mean_value[i]) / (0.00001 + std_value[i]);
-    }
-    cv::merge(src_channels, dst_image);
-}
-
 float postprocess(const float *output, \ 
                   const std::string &embedding_file, \ 
                   const int out_channel, \ 
