@@ -117,7 +117,7 @@ void knn_process(const cv::Mat &embedding_train, const cv::Mat &embedding_test, 
 
     int distanceMatWidth = distances_mat.size[0];
     int distanceMatHeight = distances_mat.size[1];
-    // std::cout << "result: " << distances_mat.size[0] << " " << distances_mat.size[1] << std::endl;
+    std::cout << "result: " << distances_mat.size[0] << " " << distances_mat.size[1] << std::endl;
 
     // reshape 784 * 9 --> 9 * 784
     for (int d = 0; d < distanceMatHeight; d++)
@@ -130,62 +130,123 @@ void knn_process(const cv::Mat &embedding_train, const cv::Mat &embedding_test, 
     }
 }
 
-void ann_train(const cv::Mat &embedding_train, const std::string save_path)
+// void ann_train(const cv::Mat &embedding_train, const std::string save_path)
+// {
+//     int ef_construction = KNEIGHBOURS * 10;
+//     int M = 16;
+//     // Declaring index，声明索引类型，如：l2, cosine or ip
+//     auto space = std::unique_ptr<hnswlib::L2Space>(new hnswlib::L2Space(embedding_train.rows));
+//     // std::cout << embedding_train.rows << " " << embedding_test.rows << std::endl;
+//     // 初始化索引，元素的最大数需要是已知的
+//     auto appr_alg = std::unique_ptr<hnswlib::HierarchicalNSW<float>>(
+//             new hnswlib::HierarchicalNSW<float>(space.get(), embedding_train.rows, M,
+//                                                 ef_construction));
+//     // appr_alg->setEf(ef_construction);
+//     // std::priority_queue<std::pair<float, hnswlib::labeltype >> ret=appr_alg->searchKnn(embedding_test.data, K);//'1' is the nearest neg
+//     int count = 0;
+//     int vecdim = embedding_train.cols;
+//     unsigned long time_start_insert, time_end_insert, time_start_search, time_end_search;
+//     time_start_insert = get_current_time();
+//     ParallelFor(0, embedding_train.rows, 1, [&](size_t row, size_t threadId)
+//     {
+//         float *mass = new float[vecdim];
+//         memcpy(mass, embedding_train.data + row*vecdim, vecdim * sizeof(float));
+//         appr_alg->addPoint((void*)mass, row);
+//         delete[] mass;
+//     });
+//     time_end_insert = get_current_time();
+//     std::cout << "addpoint cost time: " <<  (time_end_insert - time_start_insert)/1000.0  << "ms" << std::endl;
+
+//     // save index
+//     appr_alg->saveIndex(save_path);
+// }
+
+// void ann_process(const cv::Mat &embedding_train, const cv::Mat &embedding_test, float* distances, const std::string save_path)
+// {
+//     // process
+//     int ef_construction = KNEIGHBOURS * 10;
+//     int vecdim = embedding_train.cols;
+//     auto l2space = new hnswlib::L2Space(embedding_train.rows);
+//     auto appr_alg = new hnswlib::HierarchicalNSW<float>(l2space, save_path, false, embedding_train.rows);
+//     appr_alg->setEf(ef_construction);
+
+//     // time_start_search = get_current_time();
+
+// 	ParallelFor(0, embedding_test.rows, 4, [&](size_t row, size_t threadId)
+// 	{
+// 		float *mass = new float[vecdim];
+//         memcpy(mass, embedding_test.data + row*vecdim, vecdim * sizeof(float));
+// 		std::priority_queue<std::pair<float, hnswlib::labeltype>> candidates = 
+//                                                         appr_alg->searchKnn((void*)mass, KNEIGHBOURS);
+// 		delete[] mass;
+
+//         for (int k = 0; k < KNEIGHBOURS; k++)
+//         {
+//             // std::cout << "i: " << i << ", k: " << k << ", dist: " << candidates.top().first << std::endl;
+//             distances[row*KNEIGHBOURS + k] = candidates.top().first;
+//             candidates.pop();
+//         }
+// 	});
+//     // time_end_search = get_current_time();
+//     // std::cout << "search cost time: " <<  (time_end_search - time_start_search)/1000.0  << "ms" << std::endl;
+//     //-----------------------------------------------------------------------------
+// }
+
+
+void ann_process(const cv::Mat &embedding_train, const cv::Mat &embedding_test, float* distances)
 {
-    int ef_construction = KNEIGHBOURS * 10;
+    int ef_construction = KNEIGHBOURS * 5;
     int M = 16;
     // Declaring index，声明索引类型，如：l2, cosine or ip
-    auto space = std::unique_ptr<hnswlib::L2Space>(new hnswlib::L2Space(embedding_train.rows));
-    // std::cout << embedding_train.rows << " " << embedding_test.rows << std::endl;
+    auto space = std::unique_ptr<hnswlib::L2Space>(new hnswlib::L2Space(embedding_train.cols));
     // 初始化索引，元素的最大数需要是已知的
     auto appr_alg = std::unique_ptr<hnswlib::HierarchicalNSW<float>>(
             new hnswlib::HierarchicalNSW<float>(space.get(), embedding_train.rows, M,
                                                 ef_construction));
-    appr_alg->setEf(ef_construction);
-    // std::priority_queue<std::pair<float, hnswlib::labeltype >> ret=appr_alg->searchKnn(embedding_test.data, K);//'1' is the nearest neg
-    int count = 0;
+
     int vecdim = embedding_train.cols;
-    unsigned long time_start_insert, time_end_insert, time_start_search, time_end_search;
-    time_start_insert = get_current_time();
-    ParallelFor(0, embedding_train.rows, 1, [&](size_t row, size_t threadId)
+    for(int t = 0; t < embedding_train.rows; t++)
     {
-        float *mass = new float[vecdim];
-        memcpy(mass, embedding_train.data + row*vecdim, vecdim * sizeof(float));
-        appr_alg->addPoint((void*)mass, row);
-        delete[] mass;
-    });
-    time_end_insert = get_current_time();
-    std::cout << "addpoint cost time: " <<  (time_end_insert - time_start_insert)/1000.0  << "ms" << std::endl;
+        float *mass_train = new float[vecdim];
+        // memcpy(mass_train, embedding_train.data + t*vecdim, vecdim * sizeof(float));
+		for (size_t j = 0; j < vecdim; j++)
+		{
+			mass_train[j] = embedding_train.at<float>(t, j);
+		}
+        appr_alg->addPoint((void*)mass_train, t);
+        delete[] mass_train;
+    }
+    std::cout << "processing..." << std::endl;
 
-    // save index
-    appr_alg->saveIndex(save_path);
-}
-
-void ann_process(const cv::Mat &embedding_train, const cv::Mat &embedding_test, float* distances, const std::string save_path)
-{
     // process
-    int vecdim = embedding_train.cols;
-    auto l2space = new hnswlib::L2Space(embedding_train.rows);
-    auto appr_alg = new hnswlib::HierarchicalNSW<float>(l2space, save_path, false, embedding_train.rows);
-
-    // time_start_search = get_current_time();
-
-	ParallelFor(0, embedding_test.rows, 4, [&](size_t row, size_t threadId)
+    appr_alg->setEf(ef_construction);
+    float* distances_mat = new float[embedding_test.rows*KNEIGHBOURS];
+	for(int l = 0; l < embedding_test.rows; l++)
 	{
-		float *mass = new float[vecdim];
-        memcpy(mass, embedding_test.data + row*vecdim, vecdim * sizeof(float));
+		float *mass_test = new float[vecdim];
+        // memcpy(mass_test, embedding_test.data + l*vecdim, vecdim * sizeof(float));
+		for (int j = 0; j < vecdim; j++)
+		{
+			mass_test[j] = embedding_test.at<float>(l, j);
+		}
 		std::priority_queue<std::pair<float, hnswlib::labeltype>> candidates = 
-                                                        appr_alg->searchKnn((void*)mass, KNEIGHBOURS);
-		delete[] mass;
+                                                        appr_alg->searchKnn((void*)mass_test, KNEIGHBOURS);
+		delete[] mass_test;
 
         for (int k = 0; k < KNEIGHBOURS; k++)
         {
-            // std::cout << "i: " << i << ", k: " << k << ", dist: " << candidates.top().first << std::endl;
-            distances[row*KNEIGHBOURS + k] = candidates.top().first;
+            // std::cout << "l: " << l << ", k: " << k << ", dist: " << candidates.top().first << std::endl;
+            distances_mat[l*KNEIGHBOURS + (KNEIGHBOURS-k-1)] = candidates.top().first;
             candidates.pop();
         }
-	});
-    // time_end_search = get_current_time();
-    // std::cout << "search cost time: " <<  (time_end_search - time_start_search)/1000.0  << "ms" << std::endl;
-    //-----------------------------------------------------------------------------
+	}
+    // reshape 784 * 9 --> 9 * 784
+    for (int d = 0; d < KNEIGHBOURS; d++)
+    {
+        for (int c = 0; c < embedding_test.rows; c++)
+        {
+            distances[d*embedding_test.rows + c] = distances_mat[c*KNEIGHBOURS + d];
+            // memcpy(distances + d*784 + c, distances_mat.data + c*9 + d, sizeof(float));
+        }
+    }
 }

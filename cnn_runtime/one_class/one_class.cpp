@@ -11,17 +11,21 @@
 #include <sys/time.h>
 
 #define KNEIGHBOURS (9)
+#define INPUTSIZE (144)
 
 float postprocess(const float *output, \ 
                   const std::string &embedding_file, \ 
                   const int out_channel, \ 
                   const int out_height, \
-                  const int out_width)
+                  const int out_width,
+                  const std::string method)
 {
     cv::Mat embedding_train = train_embedding_process(embedding_file, out_channel);
     cv::Mat embedding_test = reshape_embedding(output, out_channel, out_height, out_width);
     float* distances = new float[embedding_test.rows*KNEIGHBOURS];
-    knn_process(embedding_train, embedding_test, distances);
+
+    // knn_process(embedding_train, embedding_test, distances);
+    ann_process(embedding_train, embedding_test, distances);
 
     int max_posit = std::max_element(distances, \
 				                distances + embedding_test.rows) - distances; // - distances.data;
@@ -51,8 +55,8 @@ float postprocess(const float *output, \
 int main()
 {
     std::string model_file = "/home/edge/easy_data/easy_ml_inference/cnn_runtime/one_class/OneClassNet.onnx";
-    std::string image_txt_path = "/home/edge/data/VOCdevkit/MVtec/grid/ImageSets/val.txt";
-    std::string image_dir = "/home/edge/data/VOCdevkit/MVtec/grid/JPEGImages/";
+    std::string image_txt_path = "./val.txt";
+    std::string image_dir = "./images/";
     std::string embedding_file = "/home/edge/easy_data/easy_ml_inference/cnn_runtime/one_class/embedding.bin";
 
     cv::dnn::Net net = cv::dnn::readNetFromONNX(model_file);
@@ -79,7 +83,7 @@ int main()
         image_path << image_dir << image_name;
         std::cout << image_path.str() << std::endl;
         cv::Mat image = cv::imread(image_path.str());
-        cv::Mat blob = cv::dnn::blobFromImage(image, scale, cv::Size(224, 224), mean, true);
+        cv::Mat blob = cv::dnn::blobFromImage(image, scale, cv::Size(INPUTSIZE, INPUTSIZE), mean, true);
         net.setInput(blob, "one_class_input");
 
         cv::Mat out = net.forward("one_class_output");
@@ -94,7 +98,7 @@ int main()
         float score;
         unsigned long time_start, time_end;
         time_start = get_current_time();
-        score = postprocess(output, embedding_file, out_channel, out_height, out_width);
+        score = postprocess(output, embedding_file, out_channel, out_height, out_width, "KNN");
         time_end = get_current_time();
         std::cout << "one_class_net cost time: " <<  (time_end - time_start)/1000.0  << "ms" << std::endl;
         std::cout << "score: " << score << std::endl;

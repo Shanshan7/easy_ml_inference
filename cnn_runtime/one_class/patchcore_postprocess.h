@@ -20,6 +20,6 @@ cv::Mat reshape_embedding(const float *output,
 
 void knn_process(const cv::Mat &embedding_train, const cv::Mat &embedding_test, float* distances);
 
-
+void ann_process(const cv::Mat &embedding_train, const cv::Mat &embedding_test, float* distances);
 
 #endif // POESNET_POSTPORCESS_H
