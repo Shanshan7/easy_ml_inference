@@ -242,17 +242,18 @@ void ann_process(const cv::Mat &embedding_train, const cv::Mat &embedding_test, 
         for (int k = 0; k < KNEIGHBOURS; k++)
         {
             // std::cout << "l: " << l << ", k: " << k << ", dist: " << candidates.top().first << std::endl;
-            distances_mat[row*KNEIGHBOURS + (KNEIGHBOURS-k-1)] = candidates.top().first;
+            // distances_mat[row*KNEIGHBOURS + (KNEIGHBOURS-k-1)] = candidates.top().first;
+            distances[(KNEIGHBOURS-k-1)*embedding_test.rows + row] = candidates.top().first;
             candidates.pop();
         }
 	});
-    // reshape 784 * 9 --> 9 * 784
-    for (int d = 0; d < KNEIGHBOURS; d++)
-    {
-        for (int c = 0; c < embedding_test.rows; c++)
-        {
-            distances[d*embedding_test.rows + c] = distances_mat[c*KNEIGHBOURS + d];
-            // memcpy(distances + d*784 + c, distances_mat.data + c*9 + d, sizeof(float));
-        }
-    }
+    // // reshape 784 * 9 --> 9 * 784 T
+    // for (int d = 0; d < KNEIGHBOURS; d++)
+    // {
+    //     for (int c = 0; c < embedding_test.rows; c++)
+    //     {
+    //         distances[d*embedding_test.rows + c] = distances_mat[c*KNEIGHBOURS + d];
+    //         // memcpy(distances + d*784 + c, distances_mat.data + c*9 + d, sizeof(float));
+    //     }
+    // }
 }
