@@ -58,6 +58,7 @@ int main()
     std::string image_txt_path = "./val.txt";
     std::string image_dir = "./images/";
     std::string embedding_file = "/home/edge/easy_data/easy_ml_inference/cnn_runtime/one_class/embedding.bin";
+    std::string ann_train_file = "./ann_train.bin";
 
     cv::dnn::Net net = cv::dnn::readNetFromONNX(model_file);
 

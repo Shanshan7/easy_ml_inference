@@ -1,0 +1,4 @@
+Log file created at: 2021/12/10 15:35:12
+Running on machine: edge
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I1210 15:35:12.480018 16694 test_yolov5rt.cpp:31] yolo_path: ../yolov5/yolov5s.onnx
