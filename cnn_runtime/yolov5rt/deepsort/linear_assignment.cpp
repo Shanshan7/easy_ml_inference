@@ -62,6 +62,7 @@ linear_assignment::matching_cascade(
     std::vector<int> track_indices_l;
 
     std::map<int, int> matches_trackid;
+#ifdef FEATURE_MATCH_EN
     for(int level = 0; level < cascade_depth; level++) {
         if(unmatched_detections.size() == 0) break; //No detections left;
 
@@ -83,6 +84,7 @@ linear_assignment::matching_cascade(
             matches_trackid.insert(pa);
         }
     }
+#endif
     res.unmatched_detections.assign(unmatched_detections.begin(), unmatched_detections.end());
     for(size_t i = 0; i < track_indices.size(); i++) {
         int tid = track_indices[i];

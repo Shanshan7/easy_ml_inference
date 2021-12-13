@@ -1,6 +1,7 @@
 #define _DLL_EXPORTS
 
 #include "deepsort.h"
+#include <glog/logging.h>
 
 //DeepSort::DeepSort(std::string modelPath, int batchSize, int featureDim, int gpuID, ILogger* gLogger) {
 //    this->gpuID = gpuID;
@@ -90,19 +91,27 @@ void DeepSort::sort(cv::Mat& frame, DETECTIONS& detections) {
 void DeepSort::sort(cv::Mat& frame, DETECTIONSV2& detectionsv2) {
     std::vector<CLSCONF>& clsConf = detectionsv2.first;
     DETECTIONS& detections = detectionsv2.second;
-    // bool flag = featureExtractor->getRectsFeature(frame, detections);
-    if (1) {
+#ifdef FEATURE_MATCH_EN
+    bool flag = featureExtractor->getRectsFeature(frame, detections);
+#else
+    bool flag = 1;
+#endif
+    LOG(INFO) << "[deepsort] Extract REID feature!";
+    if (flag) {
+        LOG(INFO) << "[deepsort] Start tracking!";
         objTracker->predict();
+        LOG(INFO) << "[deepsort] Predict track object done!";
         objTracker->update(detectionsv2);
+        LOG(INFO) << "[deepsort] Update object track id done!";
         result.clear();
         results.clear();
         for (Track& track : objTracker->tracks) {
-            std::cout << "track_id: " << track.track_id << std::endl;
             if (!track.is_confirmed() || track.time_since_update > 1)
                 continue;
             result.push_back(make_pair(track.track_id, track.to_tlwh()));
             results.push_back(make_pair(CLSCONF(track.cls, track.conf), track.to_tlwh()));
         }
+        LOG(INFO) << "[deepsort] Track object has been record in results done!";
     }
 }
 

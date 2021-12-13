@@ -1,6 +1,8 @@
 #ifndef DATATYPE_H
 #define DATATYPE_H
 #define Feature_Vector_Dim 256
+#include<vector>
+#include <opencv2/core.hpp>
 typedef struct DetectBox {
     DetectBox(float x1=0, float y1=0, float x2=0, float y2=0, 
             float confidence=0, float classID=-1, float trackID=-1) {
@@ -17,6 +19,19 @@ typedef struct DetectBox {
     float classID;
     float trackID;
 } DetectBox;
+
+struct TrajectoryParams {
+	int latest_frame_id=-1;      // the latest frame the target has captured recently
+	int draw_flag;
+    int npedestrian_direction;
+	float mean_velocity;
+	std::vector<float> velocity_vector;
+	std::vector<float> pedestrian_x_start;
+	std::vector<float> pedestrian_y_start;
+	std::vector<float> pedestrian_x_end;
+	std::vector<float> pedestrian_y_end;
+	std::vector<cv::Point2f> trajectory_position;
+};
 
 #endif // DATATYPE_H
 
