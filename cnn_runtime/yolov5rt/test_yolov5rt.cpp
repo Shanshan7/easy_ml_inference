@@ -25,10 +25,10 @@ static void showTrajectory(cv::Mat& img, std::map<int, TrajectoryParams> &track_
     for (std::map<int, TrajectoryParams>::iterator it = track_idx_map.begin(); it != track_idx_map.end(); ++it)
     {
         if(it->second.draw_flag == 1) {
-            cv::Point lt(it->second.pedestrian_x_start.back(), it->second.pedestrian_y_start.back());
-            cv::Point br(it->second.pedestrian_x_end.back(), it->second.pedestrian_y_end.back());
+            cv::Point lt(it->second.pedestrian_location[0], it->second.pedestrian_location[1]);
+            cv::Point br(it->second.pedestrian_location[2], it->second.pedestrian_location[3]);
             cv::rectangle(temp, lt, br, cv::Scalar(255, 0, 0), 1);
-            std::string lbl = cv::format("ID:%d_V:%.2f",(int)it->first,it->second.mean_velocity);
+            std::string lbl = cv::format("ID:%d_V:%.2f_P:%2.f",(int)it->first, it->second.mean_velocity, it->second.relative_distance);
             cv::putText(temp, lbl, lt, cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(0,255,0));
             for (int j = 0; j < it->second.trajectory_position.size(); j++) {
                 cv::Point p(it->second.trajectory_position[j].x, it->second.trajectory_position[j].y);
@@ -36,7 +36,9 @@ static void showTrajectory(cv::Mat& img, std::map<int, TrajectoryParams> &track_
             }
         }
     }
-    cv::imshow("img", temp);
+    cv::namedWindow("image", 0);
+    cv::resizeWindow("image", img.cols*0.4, img.rows*0.4);
+    cv::imshow("image", temp);
     cv::waitKey(1);
 }
 
@@ -67,8 +69,14 @@ int main(int argc, char** argv)
 
     // yolo detect
     std::vector<DetectBox> det_results;
-    std::map<int, TrajectoryParams> track_idx_map;
-	track_idx_map.clear();
+    // std::map<int, TrajectoryParams> track_idx_map;
+	// track_idx_map.clear();
+    // traj init
+    CalculateTraj calculate_traj;
+#ifdef IS_SAVE_DATA
+    calculate_traj.init_save_dir();
+#endif
+
     int frame_id = 0;
 	for (int index = 0; index < images.size(); index++) 
 	{
@@ -93,8 +101,12 @@ int main(int argc, char** argv)
         LOG(INFO) << "[deepsort] Deepsort process Done!!!";
         // showDetection(frame, det_results);
         frame_id = index;
-        calculate_tracking_trajectory(det_results, track_idx_map, frame_id);
-        showTrajectory(frame, track_idx_map);
+        calculate_traj.calculate_trajectory(det_results, frame_id, frame.rows);
+        // calculate_tracking_trajectory(det_results, track_idx_map, frame_id);
+#ifdef IS_SAVE_DATA
+        calculate_traj.save_det_result(det_results, frame_id);
+#endif
+        showTrajectory(frame, calculate_traj.track_idx_map);
     }
     LOG(INFO) << "All process Done!";
 

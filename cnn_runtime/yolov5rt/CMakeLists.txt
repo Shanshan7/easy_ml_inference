@@ -10,6 +10,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 #add_definitions(-DFEATURE_MATCH_EN)
 #add_definitions(-DIS_SEND_DATA)
+add_definitions(-DIS_SAVE_DATA)
 
 #include MOT headers
 include_directories(${PROJECT_SOURCE_DIR}/common)

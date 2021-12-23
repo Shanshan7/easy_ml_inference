@@ -20,18 +20,18 @@ typedef struct DetectBox {
     float trackID;
 } DetectBox;
 
-struct TrajectoryParams {
-	int latest_frame_id=-1;      // the latest frame the target has captured recently
-	int draw_flag;
-    int npedestrian_direction;
-	float mean_velocity;
-	std::vector<float> velocity_vector;
-	std::vector<float> pedestrian_x_start;
-	std::vector<float> pedestrian_y_start;
-	std::vector<float> pedestrian_x_end;
-	std::vector<float> pedestrian_y_end;
-	std::vector<cv::Point2f> trajectory_position;
-};
+// struct TrajectoryParams {
+// 	int latest_frame_id=-1;      // the latest frame the target has captured recently
+// 	int draw_flag;
+//     int npedestrian_direction;
+// 	float mean_velocity;
+// 	std::vector<float> velocity_vector;
+// 	std::vector<float> pedestrian_x_start;
+// 	std::vector<float> pedestrian_y_start;
+// 	std::vector<float> pedestrian_x_end;
+// 	std::vector<float> pedestrian_y_end;
+// 	std::vector<cv::Point2f> trajectory_position;
+// };
 
 #endif // DATATYPE_H
 
