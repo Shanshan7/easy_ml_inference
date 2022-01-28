@@ -72,96 +72,142 @@ void YOLO::sigmoid(Mat* out, int length)
 	}
 }
 
+// void YOLO::get_square_size(const cv::Size src_size, const cv::Size dst_size, float &ratio, cv::Size &pad_size)
+// {
+//     const int src_width = src_size.width;
+//     const int src_height = src_size.height;
+//     const int dst_width = dst_size.width;
+//     const int dst_height = dst_size.height;
+//     ratio = std::min(static_cast<float>(dst_width) / src_width, \
+//                      static_cast<float>(dst_height) / src_height);
+//     const int new_width = static_cast<int>(src_width * ratio);
+//     const int new_height = static_cast<int>(src_height * ratio);
+//     const int pad_width = dst_width - new_width;
+//     const int pad_height = dst_height - new_height;
+//     pad_size.width = pad_width;
+//     pad_size.height = pad_height;
+// }
+
+// void YOLO::image_resize_square(const cv::Mat &src, const cv::Size dst_size, cv::Mat &dst_image)
+// {
+//     const int src_width = src.cols;
+//     const int src_height = src.rows;
+//     float ratio;
+//     cv::Size pad_size;
+//     get_square_size(cv::Size(src_width, src_height), dst_size, ratio, pad_size);
+//     int new_width = static_cast<int>(src_width * ratio);
+//     int new_height = static_cast<int>(src_height * ratio);
+//     const int top = pad_size.height / 2;
+//     const int bottom = pad_size.height - (pad_size.height / 2);
+//     const int left = pad_size.width / 2;
+//     const int right = pad_size.width - (pad_size.width / 2);
+//     cv::Mat resize_mat;
+//     cv::resize(src, resize_mat, cv::Size(new_width, new_height), 0, 0, cv::INTER_LINEAR);
+//     cv::copyMakeBorder(resize_mat, dst_image, top, bottom, left, right, cv::INTER_LINEAR, cv::Scalar(114, 114, 114));
+// }
+
+static float overlap(float x1, float w1, float x2, float w2)
+{
+    float left = std::max(x1 - w1 / 2.0f, x2 - w2 / 2.0f);
+    float right = std::min(x1 + w1 / 2.0f, x2 + w2 / 2.0f);
+    return right - left;
+}
+
+static float cal_iou(std::vector<float> box, std::vector<float>truth)
+{
+    float w = overlap(box[0], box[2], truth[0], truth[2]);
+    float h = overlap(box[1], box[3], truth[1], truth[3]);
+    if(w < 0 || h < 0) return 0;
+
+    float inter_area = w * h;
+    float union_area = box[2] * box[3] + truth[2] * truth[3] - inter_area;
+    return inter_area * 1.0f / union_area;
+}
+
+/**************************************
+Parammeter: 
+            1.boxes: all detection objects
+            2.classes: classes number(unuse in this version)
+            3.thres: iou threshold
+            4.sign_nms: do road sign nms or not, default is true
+
+Return: detection objects after nms
+**************************************/
+std::vector<std::vector<float>> YOLO::applyNMS(std::vector<std::vector<float>>& boxes,
+	                                    const float thres) 
+{    
+    std::vector<std::vector<float>> result;
+    std::vector<bool> exist_box(boxes.size(), true);
+
+    int n = 0;
+    for (size_t _i = 0; _i < boxes.size(); ++_i) 
+	{
+        if (!exist_box[_i]) 
+			continue;
+        n = 0;
+        for (size_t _j = _i + 1; _j < boxes.size(); ++_j)
+		{
+            // different class name
+            if (!exist_box[_j] || boxes[_i][4] != boxes[_j][4]) 
+				continue;
+            float ovr = cal_iou(boxes[_j], boxes[_i]);
+            if (ovr >= thres) 
+            {
+                if (boxes[_j][5] <= boxes[_i][5])
+                {
+                    exist_box[_j] = false;
+                }
+                else
+                {
+                    n++;   // have object_score bigger than boxes[_i]
+                    exist_box[_i] = false;
+                    break;
+                }
+            }
+        }
+        //if (n) exist_box[_i] = false;
+		if (n == 0) 
+		{
+			result.push_back(boxes[_i]);
+		}			
+    }
+
+    return result;
+}
+
 void YOLO::run(Mat& frame, std::vector<DetResults> &det_results)
 {
 	Mat blob;
 	int col = frame.cols;
 	int row = frame.rows;
-	int maxLen = MAX(col, row);
+	int maxLen = max(col, row);
 	Mat netInputImg = frame.clone();
-	if (maxLen > 1.2*col || maxLen > 1.2*row) {
-		Mat resizeImg = Mat::zeros(maxLen, maxLen, CV_8UC3);
-		frame.copyTo(resizeImg(Rect(0, 0, col, row)));
-		netInputImg = resizeImg;
-	}
+	// if (maxLen > 1.2*col || maxLen > 1.2*row) {
+	// 	Mat resizeImg = Mat::ones(maxLen, maxLen, CV_8UC3) * 114;
+	// 	frame.copyTo(resizeImg(Rect(0, 0, col, row)));
+	// 	netInputImg = resizeImg;
+	// }
+    // float ratio = static_cast<float>(this->inpWidth) /  static_cast<float>(this->inpHeight);
+	// const int new_height = std::max(static_cast<int>(col / ratio), row);
+	// const int new_width = std::max(static_cast<int>(row * ratio), col);
+	// Mat resizeImg = Mat::ones(new_height, new_width, CV_8UC3) * 114;
+	// frame.copyTo(resizeImg(Rect(0, 0, col, row)));
+	// netInputImg = resizeImg;
 	this->src_height = netInputImg.rows;
 	this->src_width = netInputImg.cols;
-	blobFromImage(netInputImg, blob, 1 / 255.0, cv::Size(this->inpWidth, this->inpHeight), cv::Scalar(104, 117,123), true, false);
+	blobFromImage(netInputImg, blob, 1 / 255.0, cv::Size(this->inpWidth, this->inpHeight), cv::Scalar(0, 0, 0), true, false);
 	this->net.setInput(blob);
 	std::vector<cv::Mat> netOutputImg;
 	this->net.forward(netOutputImg, net.getUnconnectedOutLayersNames());
 
-	for (int c = 0; c < netOutputImg.size(); c++)
-	{
-		std::cout << "i: " << c << " shape: " << netOutputImg[c].size[1] << " " << netOutputImg[c].size[2] << " " \
-	              << netOutputImg[c].size[3] << std::endl;
-	}
+	// for (int c = 0; c < netOutputImg.size(); c++)
+	// {
+	// 	std::cout << "i: " << c << " shape: " << netOutputImg[c].size[1] << " " << netOutputImg[c].size[2] << " " \
+	//               << netOutputImg[c].size[3] << std::endl;
+	// }
 	
 	postprocess(netOutputImg, det_results);
 }
-
-// int YOLO::postprocess(std::vector<cv::Mat> &outputs, std::vector<DetResults> &det_results)
-// {
-// 	int rval = 0;
-
-// 	std::vector<int> classIds;//结果id数组
-// 	std::vector<float> confidences;//结果每个id对应置信度数组
-// 	std::vector<cv::Rect> boxes;//每个id矩形框
-// 	float ratio_h = (float)this->src_height / this->inpHeight;
-// 	float ratio_w = (float)this->src_width / this->inpWidth;
-// 	int net_width = this->classes.size() + 5;  //输出的网络宽度是类别数+5
-// 	// float* pdata = (float*)outputs[0].data;
-// 	for (int stride =0; stride < 3; stride++) 
-// 	{    //stride
-// 		float* pdata = (float*)outputs[stride].data;
-// 		int grid_x = (int)(this->inpWidth / this->stride[stride]);
-// 		int grid_y = (int)(this->inpHeight / this->stride[stride]);
-// 		for (int anchor = 0; anchor < 3; anchor++) { //anchors
-// 			const float anchor_w = this->anchors[stride][anchor * 2];
-// 			const float anchor_h = this->anchors[stride][anchor * 2 + 1];
-// 			for (int i = 0; i < grid_y; i++) {
-// 				for (int j = 0; j < grid_x; j++) {
-// 					float box_score = pdata[4]; //Sigmoid(pdata[4]);//获取每一行的box框中含有某个物体的概率
-// 					if (box_score > this->objThreshold) {
-// 						std::cout << "box_score: " << stride << " " << anchor << " " << i << " " << j << " " << box_score << std::endl;
-// 						cv::Mat scores(1, this->classes.size(), CV_32FC1, pdata + 5);
-// 						Point classIdPoint;
-// 						double max_class_socre;
-// 						minMaxLoc(scores, 0, &max_class_socre, 0, &classIdPoint);
-// 						max_class_socre = (float)max_class_socre; //Sigmoid((float)max_class_socre);
-// 						if (max_class_socre > this->confThreshold) {
-// 							//rect [x,y,w,h]
-// 							float x = pdata[0];  //x // (sigmoid_x(pdata[0]) * 2.f - 0.5f + j) * this->stride[stride];
-// 							float y = pdata[1]; //y  // (sigmoid_x(pdata[1]) * 2.f - 0.5f + i) * this->stride[stride];   
-// 							float w = pdata[2]; //w // powf(sigmoid_x(pdata[2]) * 2.f, 2.f) * anchor_w;  
-// 							float h = pdata[3]; //h // powf(sigmoid_x(pdata[3]) * 2.f, 2.f) * anchor_h; 
-// 							int left = (x - 0.5*w)*ratio_w;
-// 							int top = (y - 0.5*h)*ratio_h;
-// 							classIds.push_back(classIdPoint.x);
-// 							confidences.push_back(max_class_socre*box_score);
-// 							boxes.push_back(Rect(left, top, int(w*ratio_w), int(h*ratio_h)));
-// 						}
-// 					}
-// 					pdata += net_width;//下一行
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	//执行非最大抑制以消除具有较低置信度的冗余重叠框（NMS）
-// 	vector<int> nms_result;
-// 	NMSBoxes(boxes, confidences, this->confThreshold, this->nmsThreshold, nms_result);
-// 	for (int i = 0; i < nms_result.size(); i++) {
-// 		int idx = nms_result[i];
-// 		DetResults result;
-// 		result.class_id = classIds[idx];
-// 		result.confidence = confidences[idx];
-// 		result.box = boxes[idx];
-// 		det_results.push_back(result);
-// 	}
-
-// 	return rval;
-// }
 
 int YOLO::postprocess(std::vector<cv::Mat> &outputs, std::vector<DetResults> &det_results)
 {
@@ -169,13 +215,15 @@ int YOLO::postprocess(std::vector<cv::Mat> &outputs, std::vector<DetResults> &de
 
 	std::vector<int> classIds;//结果id数组
 	std::vector<float> confidences;//结果每个id对应置信度数组
-	std::vector<cv::Rect> boxes;//每个id矩形框
+	// std::vector<cv::Rect> boxes;//每个id矩形框
+	std::vector<std::vector<float>> boxes;
 	float ratio_h = (float)this->src_height / this->inpHeight;
 	float ratio_w = (float)this->src_width / this->inpWidth;
 	int net_width = this->classes.size() + 5;  //输出的网络宽度是类别数+5
 
 	for (int stride =0; stride < 3; stride++) 
 	{    //stride
+		std::vector<float> box;
 		float* pdata = (float*)outputs[stride].data;
 		int grid_x = (int)(this->inpWidth / this->stride[stride]);
 		int grid_y = (int)(this->inpHeight / this->stride[stride]);
@@ -207,6 +255,7 @@ int YOLO::postprocess(std::vector<cv::Mat> &outputs, std::vector<DetResults> &de
 						// max_class_socre = sigmoid_x((float)max_class_socre); // (float)max_class_socre;
 						if (box_score > this->confThreshold) {
 							// rect [x,y,w,h]
+							box.clear();
 							float x = (sigmoid_x(pdata[IDX(0)]) * 2.f - 0.5f + j) * this->stride[stride]; //x pdata[0];   // 
 							float y = (sigmoid_x(pdata[IDX(1)]) * 2.f - 0.5f + i) * this->stride[stride]; //y pdata[1]; //    
 							float w = powf(sigmoid_x(pdata[IDX(2)]) * 2.f, 2.f) * anchor_w; //w pdata[2]; //  
@@ -215,24 +264,29 @@ int YOLO::postprocess(std::vector<cv::Mat> &outputs, std::vector<DetResults> &de
 							int top = (y - 0.5*h)*ratio_h;
 							classIds.push_back(cls);
 							confidences.push_back(box_score);
-							boxes.push_back(Rect(left, top, int(w*ratio_w), int(h*ratio_h)));
+							box.push_back(float(left));
+							box.push_back(float(top));
+							box.push_back(w*ratio_w);
+							box.push_back(h*ratio_h);
+							box.push_back(float(cls));
+							box.push_back(float(box_score));
+							boxes.push_back(box);
 						}
 					}
-					// pdata += net_width;//下一行
 				}
 			}
 		}
 	}
 
 	//执行非最大抑制以消除具有较低置信度的冗余重叠框（NMS）
-	vector<int> nms_result;
-	NMSBoxes(boxes, confidences, this->confThreshold, this->nmsThreshold, nms_result);
-	for (int i = 0; i < nms_result.size(); i++) {
-		int idx = nms_result[i];
+	// vector<int> nms_result;
+	// NMSBoxes(boxes, confidences, this->confThreshold, this->nmsThreshold, nms_result);
+	boxes = applyNMS(boxes, this->nmsThreshold);
+	for (int i = 0; i < boxes.size(); i++) {
 		DetResults result;
-		result.class_id = classIds[idx];
-		result.confidence = confidences[idx];
-		result.box = boxes[idx];
+		result.class_id = boxes[i][4];
+		result.confidence = boxes[i][5];
+		result.box = Rect(boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3]);
 		det_results.push_back(result);
 	}
 
@@ -264,10 +318,11 @@ int main(int argc, char** argv)
 #ifdef IS_SHOW
 		yolo_model.drawPred(srcimg, det_results);
 		static const string kWinName = "Deep learning object detection in OpenCV";
-		namedWindow(kWinName); // WINDOW_NORMAL
-		imshow(kWinName, srcimg);
+		namedWindow("image", 0);
+		resizeWindow("image", srcimg.cols*0.4, srcimg.rows*0.4);
+		imshow("image", srcimg);
 		waitKey(0);
-		destroyAllWindows();
+		// destroyAllWindows();
 #endif
 
 #ifdef IS_SAVE_TXT
