@@ -15,7 +15,7 @@
 using namespace std;
 
 #define MOT_REID_DIM    128
-#define g_classificationCnt 3
+#define g_classificationCnt 1
 
 #define IDX(o) (entry_index(o,anchor,j,i,grid_x,grid_y))
 
@@ -43,9 +43,9 @@ class YOLO
 		const float anchors[3][6] = {{10.0, 13.0, 16.0, 30.0, 33.0, 23.0}, {30.0, 61.0, 62.0, 45.0, 59.0, 119.0},{116.0, 90.0, 156.0, 198.0, 373.0, 326.0}};
 		const float stride[3] = { 8.0, 16.0, 32.0 };
 		const string classesFile = "coco.names";
-		const int inpWidth = 576;
+		const int inpWidth = 512;
 		const int inpHeight = 352;
-		float confThreshold = 0.3;
+		float confThreshold = 0.6;
 		float nmsThreshold = 0.45;
 		float objThreshold = 0.3;
 		int src_width;

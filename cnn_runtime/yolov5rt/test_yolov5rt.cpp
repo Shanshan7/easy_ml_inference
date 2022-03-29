@@ -28,8 +28,8 @@ static void showTrajectory(cv::Mat& img, std::map<int, TrajectoryParams> &track_
             cv::Point lt(it->second.pedestrian_location[0], it->second.pedestrian_location[1]);
             cv::Point br(it->second.pedestrian_location[2], it->second.pedestrian_location[3]);
             cv::rectangle(temp, lt, br, cv::Scalar(255, 0, 0), 1);
-            std::string lbl = cv::format("ID:%d_V:%.2f_P:%2.f",(int)it->first, it->second.mean_velocity, it->second.relative_distance);
-            cv::putText(temp, lbl, lt, cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(0,255,0));
+            std::string lbl = cv::format("ID:%d D:%d V:%.2f P:%.2f",(int)it->first, it->second.object_direction, it->second.mean_velocity, it->second.relative_distance);
+            cv::putText(temp, lbl, lt, cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(0,255,0));
             for (int j = 0; j < it->second.trajectory_position.size(); j++) {
                 cv::Point p(it->second.trajectory_position[j].x, it->second.trajectory_position[j].y);
                 cv::circle(temp, p, 2, cv::Scalar(0, 255, 0), -1);
@@ -78,7 +78,7 @@ int main(int argc, char** argv)
 #endif
 
     int frame_id = 0;
-	for (int index = 0; index < images.size(); index++) 
+	for (int index = 95; index < images.size(); index++) 
 	{
 		std::stringstream temp_str;
      	temp_str << argv[1] << index+1 << ".jpg";
@@ -92,6 +92,7 @@ int main(int argc, char** argv)
         time_start_yolo = get_current_time();
         yolo_model.run(frame, det_results);
         time_end_yolo = get_current_time();
+        std::cout << frame.rows << " " << frame.cols << std::endl;
         LOG(INFO) << "[yolov5] yolov5 cost time: " <<  (time_end_yolo - time_start_yolo)/1000.0  << "ms";
         LOG(INFO) << "[yolov5] Detect process Done!!!";
         time_start_sort = get_current_time();
@@ -101,7 +102,7 @@ int main(int argc, char** argv)
         LOG(INFO) << "[deepsort] Deepsort process Done!!!";
         // showDetection(frame, det_results);
         frame_id = index;
-        calculate_traj.calculate_trajectory(det_results, frame_id, frame.rows);
+        calculate_traj.calculate_trajectory(det_results, frame_id);
         // calculate_tracking_trajectory(det_results, track_idx_map, frame_id);
 #ifdef IS_SAVE_DATA
         calculate_traj.save_det_result(det_results, frame_id);

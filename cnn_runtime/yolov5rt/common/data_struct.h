@@ -39,13 +39,13 @@
 // };
 
 /********************************************
-行人方向：0 未知 1 正向 2 背向
+行人方向：-1 未知 0 正向 1 背向
 ********************************************/
 enum PEDESTRIAN_DIRECTION
 {
-	E_PEDESTRIAN_DIRECTION_DONT_KNOWN = 0,
-	E_PEDESTRIAN_DIRECTION_FORWARD = 1,
-	E_PEDESTRIAN_DIRECTION_BACKWARD = 2
+	E_PEDESTRIAN_DIRECTION_DONT_KNOWN = -1,
+	E_PEDESTRIAN_DIRECTION_FORWARD = 0,
+	E_PEDESTRIAN_DIRECTION_BACKWARD = 1
 };
 
 /********************************************
@@ -213,15 +213,21 @@ struct PedestrianParams
 	BOOTS_TYPE boots_type;
 };
 
+struct AutomobileParams
+{
+	// automobile param
+};
 
 struct DetectResult {
     float head_location[4];                      // the location of head [x1, y1, x2, y2]
 	float pedestrian_location[4];                // the location of pedestrian [x1, y1, x2, y2]
+	float automobile_location[4];
     float confidence;
     float class_id;
     float track_id;
 
 	PedestrianParams pedestrian_params;
+	AutomobileParams automobile_params;
 };
 
 struct DetectResultInfo {
@@ -236,19 +242,28 @@ struct TrajectoryParams {
 
 	// Pedestrian param
 	PedestrianParams pedestrian_params;
+	AutomobileParams automobile_params; 
 
 	// Track param
+	int class_id;
 	int num_pedestrian;
-	int pedestrian_direction;
+	// int num_objects_all;
+	// int num_pedestrian;
+	// int num_automobile;
+	int object_direction; 
+	
 	float relative_distance;
 	float head_location[4];
 	float mean_velocity;
+	float confidence;
+	
 	std::vector<float> velocity_vector;
-	// std::vector<float> pedestrian_x_start;
-	// std::vector<float> pedestrian_y_start;
-	// std::vector<float> pedestrian_x_end;
-	// std::vector<float> pedestrian_y_end;
+	std::vector<float> pedestrian_x_start;
+	std::vector<float> pedestrian_y_start;
+	std::vector<float> pedestrian_x_end;
+	std::vector<float> pedestrian_y_end;
 	float pedestrian_location[4];
+	float automobile_location[4];
 	std::vector<cv::Point2f> trajectory_position;
 	std::vector<cv::Point2f> trajectory_bird_position;
 };

@@ -18,6 +18,7 @@ include_directories(${PROJECT_SOURCE_DIR}/yolov5)
 include_directories(${PROJECT_SOURCE_DIR}/deepsort)
 include_directories(${PROJECT_SOURCE_DIR}/postprocess)
 include_directories(${PROJECT_SOURCE_DIR}/../../3rd_party)
+include_directories(${PROJECT_SOURCE_DIR}/../../3rd_party/json/include)
 include_directories(${PROJECT_SOURCE_DIR}/../../utility)
 
 #collect image acquisition files
@@ -36,6 +37,7 @@ file(GLOB POSTPROCESS_SRCS
 
 file(GLOB UTILS_SRCS
     "${PROJECT_SOURCE_DIR}/../../utility/*.cpp"
+    "${PROJECT_SOURCE_DIR}/../../3rd_party/json/src/*.cpp"
 	)
 
 find_package(CUDA REQUIRED)
