@@ -15,7 +15,8 @@ int main(int argc, char** argv)
     TrafficLightsClassifier traffic_lights_classifier;
 
     rgb_image = cv::imread(argv[1]);
-    traffic_lights_classifier.red_green_yellow(rgb_image);
+    std::vector<float> traffic_lights_locations = {0, 0, rgb_image.cols, rgb_image.rows};
+    traffic_lights_classifier.red_green_yellow(rgb_image, traffic_lights_locations);
 
     return rval;
 }

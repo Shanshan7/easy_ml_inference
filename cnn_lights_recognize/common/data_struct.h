@@ -184,7 +184,7 @@ enum BOOTS_TYPE
 };
 
 /********************************************
-红绿灯类型：-1 未知 0 红灯 1 绿灯 2 黄灯
+红绿灯类型：-1 灭 0 红灯 1 绿灯 2 黄灯
 ********************************************/
 enum TRAFFIC_LIGHTS_TYPE
 {
@@ -281,7 +281,7 @@ struct TrafficLightsParams {
 	int target_id;
 	TRAFFIC_LIGHTS_TYPE traffic_lights_type;
 
-	float traffic_lights_location;
+	float traffic_lights_location[4];
 };
 
 #endif // _DATA_STRUCT_H_

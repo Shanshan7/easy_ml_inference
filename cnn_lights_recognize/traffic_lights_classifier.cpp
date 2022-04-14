@@ -11,10 +11,14 @@ TrafficLightsClassifier:: ~TrafficLightsClassifier()
 
 }
 
-void TrafficLightsClassifier::red_green_yellow(cv::Mat rgb_image)
+void TrafficLightsClassifier::red_green_yellow(const cv::Mat &rgb_image, const std::vector<float> traffic_lights_locations)
 {
-    cv::Mat resize_rgb_image, hsv_image;
-    cv::resize(rgb_image, resize_rgb_image, cv::Size(64, 64));
+    cv::Mat resize_rgb_image, hsv_image, rgb_image_roi;
+    // std::cout << traffic_lights_locations[0] << " " << traffic_lights_locations[1] << " " << traffic_lights_locations[2] << " " << \
+    //                                     traffic_lights_locations[3] << std::endl;
+    rgb_image_roi = rgb_image(cv::Rect(traffic_lights_locations[0], traffic_lights_locations[1], traffic_lights_locations[2], \
+                                        traffic_lights_locations[3]));
+    cv::resize(rgb_image_roi, resize_rgb_image, cv::Size(64, 64));
     cv::cvtColor(resize_rgb_image, hsv_image, cv::COLOR_BGR2HSV);
     std::vector<cv::Mat> hsv_split;
     cv::split(hsv_image, hsv_split);
