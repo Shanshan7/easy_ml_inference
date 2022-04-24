@@ -11,18 +11,19 @@
 #include <wchar.h>
 #include <unistd.h>
 #include <getopt.h>
-#include <linux/fb.h>
+//#include <linux/fb.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <pthread.h>
-#include <sys/prctl.h>
+//#include <sys/prctl.h>
 #include <vector>
 #include <map>
-#include <glog/logging.h>
+//#include <glog/logging.h>
 #include <opencv2/core.hpp>
 
 #define MOT_MAX_TRACK_NUM	        100
 
+using namespace std;
 
 // track struct
 // struct TrackAttribute {
@@ -281,7 +282,7 @@ struct TrafficLightsParams {
 	int target_id;
 	TRAFFIC_LIGHTS_TYPE traffic_lights_type;
 
-	float traffic_lights_location[4];
+	vector<float> traffic_lights_location[4];
 };
 
 #endif // _DATA_STRUCT_H_
