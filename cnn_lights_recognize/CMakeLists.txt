@@ -13,14 +13,19 @@ set(CMAKE_BUILD_TYPE Release)
 #include MOT headers
 include_directories(${PROJECT_SOURCE_DIR}/)
 include_directories(${PROJECT_SOURCE_DIR}/common)
+include_directories(${PROJECT_SOURCE_DIR}/../3rd_party/json/include)
+include_directories(${PROJECT_SOURCE_DIR}/../3rd_party/opencv/include)
 
 #collect image acquisition files
-find_package(OpenCV REQUIRED)
+#find_package(OpenCV REQUIRED)
+
+link_directories(${PROJECT_SOURCE_DIR}/../3rd_party/opencv/lib)
 
 file(GLOB SRCS
     "${PROJECT_SOURCE_DIR}/*.cpp"
 	)
 
+aux_source_directory(${PROJECT_SOURCE_DIR}/json/src SRC_DIR)
 add_executable(test_traffic_lights_classifier "")
 
 target_sources(test_traffic_lights_classifier
@@ -30,4 +35,10 @@ target_sources(test_traffic_lights_classifier
         )
 
 # link libraries
-target_link_libraries(test_traffic_lights_classifier ${OpenCV_LIBS} -lglog)
+target_link_libraries(test_traffic_lights_classifier
+                      opencv_core
+                      opencv_imgcodecs
+                      opencv_imgproc
+                      opencv_videoio)
+
+

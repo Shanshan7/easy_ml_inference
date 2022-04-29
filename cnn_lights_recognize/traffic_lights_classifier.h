@@ -6,10 +6,11 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
+#include <fstream>
 
 #include "common/data_struct.h"
-using namespace cv;
-using namespace std;
+
+
 
 
 class TrafficLightsClassifier
@@ -19,9 +20,9 @@ public:
     ~TrafficLightsClassifier();
     int estimate_label(int *result[4]);
     int * red_green_yellow(const cv::Mat &rgb_image);
-    vector<Vec3f> hough_circles(Mat gray);
-    int ** combine_circles(vector<Vec3f> circles,Mat image);
-    vector<TrafficLightsParams> traffic_lights_result(Mat image,const std::vector<float> traffic_lights_locations);
+    vector<cv::Vec3f> hough_circles(cv::Mat gray);
+    int ** combine_circles(vector<cv::Vec3f> circles,cv::Mat image);
+    vector<TrafficLightsParams> traffic_lights_result(cv::Mat image,const std::vector<float> traffic_lights_locations);
     
 
 public:
@@ -31,15 +32,15 @@ public:
 
 private:
     // void red_green_yellow(cv::Mat rgb_image);
-    int low_green=10;
-    int up_green=50;
-    int low_yellow=100;
-    int up_yellow=115;
-    int low_red=116;
-    int up_red=130;
-    int low_off=0;
-    int up_off=10;
-    int shape=256;
+    int low_green;
+    int up_green;
+    int low_yellow;
+    int up_yellow;
+    int low_red;
+    int up_red;
+    int low_off;
+    int up_off;
+    int shape;
 
 };
 
