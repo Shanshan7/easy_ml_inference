@@ -25,8 +25,8 @@ file(GLOB SRCS
     "${PROJECT_SOURCE_DIR}/*.cpp"
 	)
 
-aux_source_directory(${PROJECT_SOURCE_DIR}/json/src SRC_DIR)
-add_executable(test_traffic_lights_classifier "")
+aux_source_directory(${PROJECT_SOURCE_DIR}/../3rd_party/json/src SRC_DIR)
+add_executable(test_traffic_lights_classifier ${SRC_DIR})
 
 target_sources(test_traffic_lights_classifier
         PRIVATE
