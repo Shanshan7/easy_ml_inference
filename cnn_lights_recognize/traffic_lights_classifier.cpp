@@ -29,6 +29,14 @@ TrafficLightsClassifier::TrafficLightsClassifier()
         shape=root["shape"].asInt();
     
     }
+    
+    
+    else
+    {
+        std::cout << "Error opening file\n";
+        exit(0);
+    }
+    
     in.close();
 }
 
