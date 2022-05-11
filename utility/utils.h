@@ -22,4 +22,11 @@ void ListPath(std::string const &path, std::vector<std::string> &paths);
 
 void ListImages(std::string const &path, std::vector<std::string> &images);
 
+std::vector<std::vector<float>> martrix_multiply_num(std::vector<std::vector<float>> matrix, float num);
+void array_reverse(float* array, int array_length);
+
+bool copy_file(std::string src, std::string dest);
+void conv1d(float *input, float *kernel, int input_length, int kernel_size, float *output);
+void conv1d(std::vector<float> &input, float *kernel, int input_length, int kernel_size, float *output);
+
 #endif //__UTILS_H__

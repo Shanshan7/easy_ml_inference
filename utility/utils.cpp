@@ -99,3 +99,86 @@ void ListImages(std::string const &path, std::vector<std::string> &images) {
     closedir(dir);
 }
 
+std::vector<std::vector<float>> martrix_multiply_num(std::vector<std::vector<float>> matrix, float num) 
+{
+    // 矩阵除以一个数
+    for (int i = 0; i < matrix.size(); i++)
+    {
+        for (int j = 0; j < matrix[0].size(); j++)
+        {
+            matrix[i][j] = matrix[i][j] * num;
+        }
+    }
+    return matrix;
+}
+
+void array_reverse(float* array, int array_length)
+{
+    float temp;
+    for (int i = 0; i < array_length / 2; i++){
+        temp = array[array_length-1-i];
+        array[array_length-1-i] = array[i];
+        array[i] = temp;
+    }
+} 
+
+/* 复制文件
+ * @参数 src - 源文件名
+ * @参数 dest - 目标文件名，如果目标文件已存在，则覆盖
+ * @返回 true | false 代表拷贝是否成功
+*/
+bool copy_file(std::string src, std::string dest) {
+    std::ifstream is(src, std::ios::binary);
+    if (is.fail()) {
+        return false;
+    }
+
+    std::ofstream os(dest, std::ios::binary);
+    if (os.fail()) {
+        return false;
+    }
+
+    is.seekg(0, std::ios::end);
+    long long length = is.tellg();  // C++ 支持的最大索引位置
+    is.seekg(0);
+    char buf[2048];
+    while (length > 0)
+    {
+        int bufSize = length >= 2048 ? 2048 : length;
+        is.read(buf, bufSize);
+        os.write(buf, bufSize);
+        length -= bufSize;
+    }
+
+    is.close();
+    os.close();
+    return true;
+}
+
+void conv1d(float *input, float *kernel, int input_length, int kernel_size, float *output)
+{
+	int output_length = input_length + kernel_size - 1;
+    for(int k = 0; k < output_length; k++) {
+        output[k] = 0;
+    }
+    for(int i = 0; i < output_length; i++) {
+        for(int j = std::max(0, i + 1 - kernel_size); j <= std::min(i, input_length - 1); j++) 
+        {
+            output[i] += input[j] * kernel[i - j];
+        }
+    }
+}
+
+void conv1d(std::vector<float> &input, float *kernel, int input_length, int kernel_size, float *output)
+{
+	int output_length = input_length + kernel_size - 1;
+    for(int k = 0; k < output_length; k++) {
+        output[k] = 0;
+    }
+    for(int i = 0; i < output_length; i++) {
+        for(int j = std::max(0, i + 1 - kernel_size); j <= std::min(i, input_length - 1); j++) 
+        {
+            output[i] += input[j] * kernel[i - j];
+        }
+    }
+}
