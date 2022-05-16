@@ -14,34 +14,34 @@ TrafficLightsClassifier::TrafficLightsClassifier()
 {
     traffic_lights_results.clear();
 
-//    std::ifstream in("/Users/zhangzikai/Desktop/easy_ml_inference/cnn_lights_recognize/hyp.json", ios::binary);
-//    Json::Reader reader;
-//    Json::Value root;
-////
-//    if(reader.parse(in, root))
-//    {
-//        low_green=root["low_green"].asInt();
-//        up_green=root["up_green"].asInt();
-//        low_yellow=root["low_yellow"].asInt();
-//        up_yellow=root["up_yellow"].asInt();
-//        low_red=root["low_red"].asInt();
-//        up_red=root["up_red"].asInt();
-//        low_off=root["low_off"].asInt();
-//        up_off=root["up_off"].asInt();
-//        shape=root["shape"].asInt();
-//        w1=root["w1"].asDouble();
-//        w2=root["w2"].asDouble();
-//        onnx_path=root["onnx_path"].asString();
-//    }
+    std::ifstream in("/Users/zhangzikai/Desktop/easy_ml_inference/cnn_lights_recognize/hyp.json", ios::binary);
+    Json::Reader reader;
+    Json::Value root;
 //
-//    
-//    else
-//    {
-//        std::cout << "Error opening file\n";
-//        exit(0);
-//    }
-//
-//    in.close();
+    if(reader.parse(in, root))
+    {
+        low_green=root["low_green"].asInt();
+        up_green=root["up_green"].asInt();
+        low_yellow=root["low_yellow"].asInt();
+        up_yellow=root["up_yellow"].asInt();
+        low_red=root["low_red"].asInt();
+        up_red=root["up_red"].asInt();
+        low_off=root["low_off"].asInt();
+        up_off=root["up_off"].asInt();
+        shape=root["shape"].asInt();
+        w1=root["w1"].asDouble();
+        w2=root["w2"].asDouble();
+        onnx_path=root["onnx_path"].asString();
+    }
+
+    
+    else
+    {
+        std::cout << "Error opening file\n";
+        exit(0);
+    }
+
+    in.close();
 }
 
 TrafficLightsClassifier:: ~TrafficLightsClassifier()
