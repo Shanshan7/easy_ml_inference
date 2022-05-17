@@ -8,13 +8,14 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <cstring>
 
 
 
 int main()
 {
     
-    string img_path="/Users/zhangzikai/Downloads/traffic_light_dataset/JPEGImages/000red/traffic_light_0001.jpg";
+//    string img_path="/Users/zhangzikai/Downloads/traffic_light_dataset/JPEGImages/000red/traffic_light_0001.jpg";
     string video_path = "/Users/zhangzikai/Desktop/traffic_light_mp4/1.mp4";
     string txt_path="/Users/zhangzikai/Desktop/easy_ml_inference/cnn_lights_recognize/1.txt";
     
@@ -26,7 +27,7 @@ int main()
     std::ifstream ReadFile;
     ReadFile.open(txt_path,ios::in);
     
-    vector<vector<int>> boxes;
+    vector<vector<float>> boxes;
     std::string out;
     
 
@@ -41,13 +42,14 @@ int main()
     
             std::istringstream ss(out);
         
-            vector<int> nums;
+            vector<float> nums;
             std::string num;
 
             while(ss >> num) {
                 nums.push_back(stoi(num));
             }
-            std::cout<<nums[0]<<std::endl;
+//            std::cout<<nums[0]<<std::endl;
+            boxes.push_back(nums);
             break;
         }
     }
@@ -55,25 +57,25 @@ int main()
     ReadFile.close();
 
     int i=0;
-        
+
     while(true)
     {
         cap.read(frame);
-        cv::Rect rect(boxes[i][0],boxes[i][1],boxes[i][0]+boxes[i][2],boxes[i][1]+boxes[i][3]);
-        cv::Mat frame_roi = frame(rect);
+//        cv::Rect rect(boxes[i][0],boxes[i][1],boxes[i][0]+boxes[i][2],boxes[i][1]+boxes[i][3]);
+//        cv::Mat frame_roi = frame(rect);
 
-        vector<TrafficLightsParams> result=traffic_lights_classifier.traffic_lights_result(frame_roi, traffic_lights_classifier.traffic_lights_locations);
+        vector<TrafficLightsParams> result=traffic_lights_classifier.traffic_lights_result(frame, boxes[i],true);
 
         std::string text = to_string(result[0].traffic_lights_type);
 
-        cv::putText(frame_roi,text, cv::Point(8, 40), cv::FONT_HERSHEY_COMPLEX, 0.6, cv::Scalar(0, 255, 255), 2);
+        cv::putText(frame,text, cv::Point(8, 40), cv::FONT_HERSHEY_COMPLEX, 0.6, cv::Scalar(0, 255, 255), 2);
 
-        cv::imshow("frame_roi", frame_roi);
+        cv::imshow("frame", frame);
         cv::waitKey(0);
 
         i++;
     }
-    
+
     cap.release();
     return 0;
     

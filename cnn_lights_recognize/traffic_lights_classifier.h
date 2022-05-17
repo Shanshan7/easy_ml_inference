@@ -44,7 +44,7 @@ private:
     int shape=224;
     double w1=0.5;
     double w2=0.5;
-    string onnx_path="/Users/zhangzikai/Downloads/ResNetCls.onnx";
+    string onnx_path="/Users/zhangzikai/Desktop/easy_ml_inference/cnn_lights_recognize/ResNetCls.onnx";
     vector<double> mean={0.5070751592371323,0.48654887331495095,0.4409178433670343};
     double std=0.2666410733740041;
 };

@@ -190,7 +190,7 @@ vector<TrafficLightsParams> TrafficLightsClassifier::traffic_lights_result(cv::M
     int label_value;
     
     if(onnx){
-        vector<float> onnx_preds=onnx_pred(image, onnx_path);
+        vector<float> onnx_preds=onnx_pred(res_img, onnx_path);
         
         //if off is None
         onnx_preds.insert(onnx_preds.begin(),0);
