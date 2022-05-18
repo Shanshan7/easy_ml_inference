@@ -18,10 +18,10 @@ class TrafficLightsClassifier
 public:
     TrafficLightsClassifier();
     ~TrafficLightsClassifier();
-    vector<float> estimate_label(int *result[4]);
-    int * red_green_yellow(const cv::Mat &rgb_image);
+    vector<double> estimate_label(double *result[4]);
+    double * red_green_yellow(const cv::Mat &rgb_image);
     vector<cv::Vec3f> hough_circles(cv::Mat gray);
-    int ** combine_circles(vector<cv::Vec3f> circles,cv::Mat image);
+    double ** combine_circles(vector<cv::Vec3f> circles,cv::Mat image);
     vector<TrafficLightsParams> traffic_lights_result(cv::Mat image,const std::vector<float> traffic_lights_locations,bool onnx=true);
     vector<float> onnx_pred(cv::Mat image,string onnx_path);
     
@@ -44,7 +44,7 @@ private:
     int shape=224;
     double w1=0.5;
     double w2=0.5;
-    string onnx_path="/Users/zhangzikai/Desktop/easy_ml_inference/cnn_lights_recognize/ResNetCls.onnx";
+    string onnx_path="/home/ai/zzk/easy_ml_inference/cnn_lights_recognize/ResNetCls.onnx";
     vector<double> mean={0.5070751592371323,0.48654887331495095,0.4409178433670343};
     double std=0.2666410733740041;
 };

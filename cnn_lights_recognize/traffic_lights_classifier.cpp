@@ -14,7 +14,7 @@ TrafficLightsClassifier::TrafficLightsClassifier()
 {
     traffic_lights_results.clear();
 
-    std::ifstream in("/Users/zhangzikai/Desktop/easy_ml_inference/cnn_lights_recognize/hyp.json", ios::binary);
+    std::ifstream in("/home/ai/zzk/easy_ml_inference/cnn_lights_recognize/hyp.json", ios::binary);
     Json::Reader reader;
     Json::Value root;
 //
@@ -49,9 +49,9 @@ TrafficLightsClassifier:: ~TrafficLightsClassifier()
 
 }
 
-int * TrafficLightsClassifier::red_green_yellow(const cv::Mat &rgb_image)
+double * TrafficLightsClassifier::red_green_yellow(const cv::Mat &rgb_image)
 {
-    int *M=(int *)malloc(4*sizeof(int));
+    double *M=(double *)malloc(4*sizeof(double));
     
     cv::Mat resize_rgb_image, hsv_image;
 //    rgb_image_roi = rgb_image(cv::Rect(traffic_lights_locations[0], traffic_lights_locations[1], traffic_lights_locations[2], \
@@ -72,25 +72,25 @@ int * TrafficLightsClassifier::red_green_yellow(const cv::Mat &rgb_image)
     cv::Scalar lower_green = cv::Scalar(low_green, sat_low, val_low);
     cv::Scalar upper_green = cv::Scalar(up_green, 255, 255);
     inRange(hsv_image, lower_green, upper_green, green_mask);
-    int sum_green = countNonZero(green_mask);
+    double sum_green = countNonZero(green_mask);
 
     // Yellow
     cv::Scalar lower_yellow = cv::Scalar(low_yellow, sat_low, val_low);
     cv::Scalar upper_yellow = cv::Scalar(up_yellow, 255, 255);
     inRange(hsv_image, lower_yellow, upper_yellow, yellow_mask);
-    int sum_yellow = countNonZero(yellow_mask);
+    double sum_yellow = countNonZero(yellow_mask);
 
     // Red
     cv::Scalar lower_red = cv::Scalar(low_red, sat_low, val_low);
     cv::Scalar upper_red = cv::Scalar(up_red, 255, 255);
     inRange(hsv_image, lower_red, upper_red,red_mask);
-    int sum_red = countNonZero(red_mask);
+    double sum_red = countNonZero(red_mask);
 
     // Off
     cv::Scalar lower_off = cv::Scalar(low_off, sat_low, val_low);
     cv::Scalar upper_off = cv::Scalar(up_off, 255, 46);
     inRange(hsv_image, lower_off, upper_off, off_mask);
-    int sum_off = countNonZero(off_mask);
+    double sum_off = countNonZero(off_mask);
 
     M[0]=sum_red;
     M[1]=sum_yellow;
@@ -100,10 +100,10 @@ int * TrafficLightsClassifier::red_green_yellow(const cv::Mat &rgb_image)
     
 }
 
-int ** TrafficLightsClassifier::combine_circles(vector<cv::Vec3f> circles,cv::Mat image){
-    int** result=new int*[circles.size()];
+double ** TrafficLightsClassifier::combine_circles(vector<cv::Vec3f> circles,cv::Mat image){
+    double** result=new double*[circles.size()];
     for(int i=0;i<circles.size();i++){
-        result[i]=new int[4];
+        result[i]=new double[4];
     }
     
     int y_min,y_max,x_min,x_max;
@@ -114,7 +114,7 @@ int ** TrafficLightsClassifier::combine_circles(vector<cv::Vec3f> circles,cv::Ma
         x_max=(int(circles[i][0])+int(circles[i][2]))<=image.size[1] ? int(circles[i][0])+int(circles[i][2]) : image.size[1];
         cv::Rect rect(x_min,y_min,x_max-x_min,y_max-y_min);
         cv::Mat image_roi = image(rect);   //rect既是要截取的区域
-        int* res=red_green_yellow(image_roi);
+        double* res=red_green_yellow(image_roi);
         for(int j=0;j<4;j++){
             result[i][j]=res[j];
         }
@@ -122,11 +122,11 @@ int ** TrafficLightsClassifier::combine_circles(vector<cv::Vec3f> circles,cv::Ma
     return result;
 }
 
-vector<float> TrafficLightsClassifier::estimate_label(int *result[4]){
-    int sum_red=0;
-    int sum_yellow=0;
-    int sum_green=0;
-    int sum_off=0;
+vector<double> TrafficLightsClassifier::estimate_label(double *result[4]){
+    double sum_red=0;
+    double sum_yellow=0;
+    double sum_green=0;
+    double sum_off=0;
 
     for (int i=0;i<sizeof(result[0]) / sizeof(result[0][0]);i++){
         sum_red+=result[i][0];
@@ -135,15 +135,18 @@ vector<float> TrafficLightsClassifier::estimate_label(int *result[4]){
         sum_off+=result[i][3];
     }
 
-    vector<int> label_values {sum_off,sum_red,sum_green,sum_yellow};
+    vector<double> label_values {sum_off,sum_red,sum_green,sum_yellow};
 //    int maxPosition = max_element(label_values.begin(),label_values.end()) - label_values.begin();
 //
 //    return maxPosition-1;
     
-    vector<float> opencv_preds={0,0,0,0};
+    vector<double> opencv_preds={0,0,0,0};
     int suum=accumulate(label_values.begin(),label_values.end(),0);
-    for(int i=0;i<label_values.size();i++){
-        opencv_preds[i]=label_values[i]/suum;
+
+    if(suum!=0){
+        for(int i=0;i<label_values.size();i++){
+            opencv_preds[i]=label_values[i]/suum;
+        }
     }
     
     return opencv_preds;
@@ -151,7 +154,7 @@ vector<float> TrafficLightsClassifier::estimate_label(int *result[4]){
 
 vector<cv::Vec3f> TrafficLightsClassifier::hough_circles(cv::Mat gray){
     vector<cv::Vec3f> circles;
-    HoughCircles(gray, circles,cv::HOUGH_GRADIENT, 1,20,100,20,30,60);
+    HoughCircles(gray, circles,cv::HOUGH_GRADIENT, 1,10,50,5,0,0);
     
     if(circles.empty()){
         cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
@@ -159,7 +162,7 @@ vector<cv::Vec3f> TrafficLightsClassifier::hough_circles(cv::Mat gray){
         clahe->setTilesGridSize(cv::Size(3,3));
         cv::Mat imgEquA;
         clahe->apply(gray, imgEquA);
-        HoughCircles(gray, circles,cv::HOUGH_GRADIENT, 1,20,100,5,20,50);
+        HoughCircles(gray, circles,cv::HOUGH_GRADIENT, 1,10,50,5,0,0);
     }
     
     return circles;
@@ -183,10 +186,10 @@ vector<TrafficLightsParams> TrafficLightsClassifier::traffic_lights_result(cv::M
     
     vector<cv::Vec3f> circles;
     circles=hough_circles(gray);
-    int **result=combine_circles(circles, res_img);
+    double **result=combine_circles(circles, res_img);
 //    int label_value=estimate_label(result);
     
-    vector<float> opencv_preds=estimate_label(result);
+    vector<double> opencv_preds=estimate_label(result);
     int label_value;
     
     if(onnx){
@@ -202,8 +205,14 @@ vector<TrafficLightsParams> TrafficLightsClassifier::traffic_lights_result(cv::M
         label_value=max_element(combine_preds.begin(),combine_preds.end()) - combine_preds.begin();
     }
     
-    else
+    else{
+        if(accumulate(opencv_preds.begin(),opencv_preds.end(),0)==0){
+            label_value=-1;
+        }
         label_value=max_element(opencv_preds.begin(),opencv_preds.end()) - opencv_preds.begin();
+    }
+        
+        
     
     
     TRAFFIC_LIGHTS_TYPE label=TRAFFIC_LIGHTS_TYPE(label_value);
