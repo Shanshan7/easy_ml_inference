@@ -16,8 +16,8 @@ int main()
 {
     
 //    string img_path="/Users/zhangzikai/Downloads/traffic_light_dataset/JPEGImages/000red/traffic_light_0001.jpg";
-    string video_path = "/home/ai/zzk/1.mp4";
-    string txt_path="/home/ai/zzk/easy_ml_inference/cnn_lights_recognize/1.txt";
+    string video_path = "/home/ai/zzk/4.mp4";
+    string txt_path="/home/ai/zzk/easy_ml_inference/cnn_lights_recognize/4.txt";
     
     TrafficLightsClassifier traffic_lights_classifier;
 
@@ -53,59 +53,55 @@ int main()
             // break;
         
         }
+
+        boxes.pop_back();
+        std::cout<<"boxes size:";
         std::cout<<boxes.size()<<std::endl;
     }
 //
     ReadFile.close();
 
-    
-
     int frame_num=cap.get(cv::CAP_PROP_FRAME_COUNT);
+    std::cout<<"frame_num:";
+    std::cout<<frame_num<<std::endl;
 
-    for (int i=0;i<frame_num-1;i++){
-        cap.read(frame);
-//        cv::Rect rect(boxes[i][0],boxes[i][1],boxes[i][0]+boxes[i][2],boxes[i][1]+boxes[i][3]);
-//        cv::Mat frame_roi = frame(rect);
+    // int epoches=10;
+    // for(int epoch=0;epoch<epoches;epoch++){
 
-        // for(int j=0;j<boxes[i].size();j++){
-        //     std::cout<<boxes[i][j]<<' ';
-        // }
-        // std::cout<<std::endl;
+    int i=0;
 
+    while (cap.isOpened()){
+        cap>>frame;
+        // std::cout<<"epoch: "+to_string(epoch)<<std::endl;
 
-        vector<TrafficLightsParams> result=traffic_lights_classifier.traffic_lights_result(frame, boxes[i],false);
-        
-        std::string text = to_string(result[0].traffic_lights_type);
+        if(frame.empty()){
+            std::cout<<"frame is empty!"<<std::endl;
+            break;
+        }
 
-        std::cout<<text<<std::endl;
+        if(i>0&i<frame_num-1){
 
-        std::cout<<i<<std::endl;
+            std::cout<<"frame:";
+            std::cout<<i<<std::endl;
 
+            vector<TrafficLightsParams> result=traffic_lights_classifier.traffic_lights_result(frame, boxes[i],true,true);
+            
+            std::string text = to_string(result[0].traffic_lights_type);
 
-        // std::cout<<result[0].traffic_lights_location[0][0]<<endl;
-        // std::cout<<result[0].traffic_lights_location[0][1]<<endl;
-        // std::cout<<result[0].traffic_lights_location[0][2]<<endl;
-        // std::cout<<result[0].traffic_lights_location[0][3]<<endl;
-        
+            std::cout<<"target_ID:";
+            std::cout<<text<<std::endl;
 
-        
+            // cv::putText(frame,text, cv::Point(8, 40), cv::FONT_HERSHEY_COMPLEX, 0.6, cv::Scalar(0, 255, 255), 2);
 
-        // cv::putText(frame,text, cv::Point(8, 40), cv::FONT_HERSHEY_COMPLEX, 0.6, cv::Scalar(0, 255, 255), 2);
+            // cv::imshow("frame", frame);
+            // cv::waitKey(0);
 
-        // cv::imshow("frame", frame);
-        // cv::waitKey(0);
-
-        
-
+            
+        }
         i++;   
     }
-
-
+    // }
     std::cout<<"finished"<<std::endl;
-
     // cap.release();
-    return 0;
-    
-    
-    
+    return 0; 
 }

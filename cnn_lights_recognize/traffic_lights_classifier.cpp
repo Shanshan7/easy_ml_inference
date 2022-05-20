@@ -14,7 +14,7 @@ TrafficLightsClassifier::TrafficLightsClassifier()
 {
     traffic_lights_results.clear();
 
-    std::ifstream in("/home/ai/zzk/easy_ml_inference/cnn_lights_recognize/hyp.json", ios::binary);
+    std::ifstream in(json_path, ios::binary);
     Json::Reader reader;
     Json::Value root;
 //
@@ -28,7 +28,8 @@ TrafficLightsClassifier::TrafficLightsClassifier()
         up_red=root["up_red"].asInt();
         low_off=root["low_off"].asInt();
         up_off=root["up_off"].asInt();
-        shape=root["shape"].asInt();
+        opencv_shape=root["opencv_shape"].asInt();
+        onnx_shape=root["onnx_shape"].asInt();
         w1=root["w1"].asDouble();
         w2=root["w2"].asDouble();
         onnx_path=root["onnx_path"].asString();
@@ -56,12 +57,12 @@ double * TrafficLightsClassifier::red_green_yellow(const cv::Mat &rgb_image)
     cv::Mat resize_rgb_image, hsv_image;
 //    rgb_image_roi = rgb_image(cv::Rect(traffic_lights_locations[0], traffic_lights_locations[1], traffic_lights_locations[2], \
 //                                        traffic_lights_locations[3]));
-    cv::resize(rgb_image, resize_rgb_image, cv::Size(shape, shape));
+    cv::resize(rgb_image, resize_rgb_image, cv::Size(opencv_shape, opencv_shape));
     cv::cvtColor(resize_rgb_image, hsv_image, cv::COLOR_RGB2HSV);
     std::vector<cv::Mat> hsv_split;
     cv::split(hsv_image, hsv_split);
     cv::Scalar sum_saturation = cv::sum(hsv_split[2]);  // Sum the brightness values
-    int area = this->shape * this->shape;
+    int area = opencv_shape * opencv_shape;
     float avg_saturation = sum_saturation[0] / area;
 
     int sat_low = (int)(avg_saturation * 1.3);
@@ -154,7 +155,7 @@ vector<double> TrafficLightsClassifier::estimate_label(double *result[4]){
 
 vector<cv::Vec3f> TrafficLightsClassifier::hough_circles(cv::Mat gray){
     vector<cv::Vec3f> circles;
-    HoughCircles(gray, circles,cv::HOUGH_GRADIENT, 1,10,50,5,0,0);
+    HoughCircles(gray, circles,cv::HOUGH_GRADIENT, 1,20,100,10,0,50);
     
     if(circles.empty()){
         cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
@@ -162,7 +163,7 @@ vector<cv::Vec3f> TrafficLightsClassifier::hough_circles(cv::Mat gray){
         clahe->setTilesGridSize(cv::Size(3,3));
         cv::Mat imgEquA;
         clahe->apply(gray, imgEquA);
-        HoughCircles(gray, circles,cv::HOUGH_GRADIENT, 1,10,50,5,0,0);
+        HoughCircles(gray, circles,cv::HOUGH_GRADIENT, 1,20,100,10,0,50);
     }
     
     return circles;
@@ -170,46 +171,54 @@ vector<cv::Vec3f> TrafficLightsClassifier::hough_circles(cv::Mat gray){
 
 vector<float> TrafficLightsClassifier::onnx_pred(cv::Mat image,string onnx_path){
     cv::dnn::Net net = cv::dnn::readNetFromONNX(onnx_path);
-    cv::Mat blob = cv::dnn::blobFromImage(image,1/(std*256),cv::Size(shape,shape),cv::Scalar(mean[0],mean[1],mean[2])*256,true,false);  // 由图片加载数据 这里还可以进行缩放、归一化等预处理
+    cv::Mat blob = cv::dnn::blobFromImage(image,1/(std*256),cv::Size(opencv_shape,opencv_shape),cv::Scalar(mean[0],mean[1],mean[2])*256,true,false);  // 由图片加载数据 这里还可以进行缩放、归一化等预处理
     net.setInput(blob);  // 设置模型输入
     cv::Mat predict = net.forward(); // 推理出结果
     return vector<float>(predict);
 }
 
-vector<TrafficLightsParams> TrafficLightsClassifier::traffic_lights_result(cv::Mat image,const vector<float> traffic_lights_locations,bool onnx){
-    cv::Mat res_img,gray,rgb_image_roi;
+vector<TrafficLightsParams> TrafficLightsClassifier::traffic_lights_result(cv::Mat image,const vector<float> traffic_lights_locations,bool onnx,bool opencv){
+    cv::Mat res_img,gray,rgb_image_roi,onnx_img;
     rgb_image_roi = image(cv::Rect(traffic_lights_locations[0], traffic_lights_locations[1], traffic_lights_locations[2], \
         traffic_lights_locations[3]));
-    resize(rgb_image_roi,res_img,cv::Size(shape,shape));
-    cvtColor(res_img, gray, cv::COLOR_RGBA2GRAY);
 
-    
-    vector<cv::Vec3f> circles;
-    circles=hough_circles(gray);
-    double **result=combine_circles(circles, res_img);
-//    int label_value=estimate_label(result);
-    
-    vector<double> opencv_preds=estimate_label(result);
+    vector<double> opencv_preds={0,0,0,0};
+    vector<double> combine_preds={0,0,0,0};
+
     int label_value;
-    
+
+    if(opencv){
+        resize(rgb_image_roi,res_img,cv::Size(opencv_shape,opencv_shape));
+        cvtColor(res_img, gray, cv::COLOR_RGBA2GRAY);
+        vector<cv::Vec3f> circles;
+        circles=hough_circles(gray);
+
+        if(!circles.empty()){
+            double **result=combine_circles(circles, res_img);
+            opencv_preds=estimate_label(result);
+        }
+
+
+    }
+  
     if(onnx){
-        vector<float> onnx_preds=onnx_pred(res_img, onnx_path);
+        resize(rgb_image_roi,onnx_img,cv::Size(onnx_shape,onnx_shape));
+        vector<float> onnx_preds=onnx_pred(onnx_img, onnx_path);
         
         //if off is None
         onnx_preds.insert(onnx_preds.begin(),0);
-        
-        vector<float> combine_preds={0,0,0,0};
+            
         for(int i=0;i<opencv_preds.size();i++){
             combine_preds[i]=w1*opencv_preds[i]+w2*onnx_preds[i];
         }
-        label_value=max_element(combine_preds.begin(),combine_preds.end()) - combine_preds.begin();
+        label_value=max_element(combine_preds.begin(),combine_preds.end()) - combine_preds.begin()-1;
     }
     
     else{
         if(accumulate(opencv_preds.begin(),opencv_preds.end(),0)==0){
             label_value=-1;
         }
-        label_value=max_element(opencv_preds.begin(),opencv_preds.end()) - opencv_preds.begin();
+        label_value=max_element(opencv_preds.begin(),opencv_preds.end()) - opencv_preds.begin()-1;
     }
         
         
