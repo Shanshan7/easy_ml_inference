@@ -186,6 +186,11 @@ vector<TrafficLightsParams> TrafficLightsClassifier::traffic_lights_result(cv::M
     vector<double> combine_preds={0,0,0,0};
 
     int label_value;
+    
+    if(!opencv&!onnx){
+        std::cout<<"No module used!"<<std::endl;
+        exit(-1);
+    }
 
     if(opencv){
         resize(rgb_image_roi,res_img,cv::Size(opencv_shape,opencv_shape));
