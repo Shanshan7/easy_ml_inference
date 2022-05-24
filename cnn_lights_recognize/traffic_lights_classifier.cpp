@@ -171,7 +171,7 @@ vector<cv::Vec3f> TrafficLightsClassifier::hough_circles(cv::Mat gray){
 
 vector<float> TrafficLightsClassifier::onnx_pred(cv::Mat image,string onnx_path){
     cv::dnn::Net net = cv::dnn::readNetFromONNX(onnx_path);
-    cv::Mat blob = cv::dnn::blobFromImage(image,1/(std*256),cv::Size(opencv_shape,opencv_shape),cv::Scalar(mean[0],mean[1],mean[2])*256,true,false);  // 由图片加载数据 这里还可以进行缩放、归一化等预处理
+    cv::Mat blob = cv::dnn::blobFromImage(image,1/(std*255),cv::Size(opencv_shape,opencv_shape),cv::Scalar(mean[0],mean[1],mean[2])*255,true,false);  // 由图片加载数据 这里还可以进行缩放、归一化等预处理
     net.setInput(blob);  // 设置模型输入
     cv::Mat predict = net.forward(); // 推理出结果
     return vector<float>(predict);
