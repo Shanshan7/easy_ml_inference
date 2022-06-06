@@ -2,126 +2,106 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/opencv.hpp>
 #include <vector>
 #include "traffic_lights_classifier.h"
-#include "json/json.h"
 #include <fstream>
+#include <string>
+#include <sstream>
+#include <cstring>
 
 
-//class ONNXClassifier
-//{
-//public:
-//    ONNXClassifier(const std::string& model_path, const std::string& label_path, cv::Size _input_size);
-//    void Classify(const cv::Mat& input_image, std::string& out_name);
-//private:
-//    void preprocess_input(cv::Mat& image);
-//    bool read_labels(const std::string& label_paht);
-//private:
-//    cv::Size input_size;
-//    cv::dnn::Net net;
-//    cv::Scalar default_mean;
-//    cv::Scalar default_std;
-//    std::vector<std::string> labels;
-//
-//};
-//
-//ONNXClassifier::ONNXClassifier(const std::string& model_path, const std::string& label_path, cv::Size _input_size):default_mean(0.485, 0.456, 0.406),
-//default_std(0.229, 0.224, 0.225),input_size(_input_size)
-//{
-//    if (!read_labels(label_path))
-//    {
-//        throw std::runtime_error("label read fail!");
-//    }
-//    net = cv::dnn::readNet(model_path);
-//    net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
-//    net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
-//}
-//bool ONNXClassifier::read_labels(const std::string& label_path)
-//{
-//    std::ifstream ifs(label_path);
-//    assert(ifs.is_open());
-//    std::string line;
-//    while (std::getline(ifs,line))
-//    {
-//        std::size_t index = line.find_first_of(':');
-//        labels.push_back(line.substr(index + 1));
-//    }
-//    if (labels.size() > 0)
-//        return true;
-//    else
-//        return false;
-//}
-//void ONNXClassifier::preprocess_input(cv::Mat& image)
-//{
-//    image.convertTo(image, CV_32F,1.0/255.0);
-//    cv::subtract(image,default_mean,image);
-//    cv::divide(image, default_std, image);
-//}
-//
-//void ONNXClassifier::Classify(const cv::Mat& input_image, std::string& out_name)
-//{
-//    out_name.clear();
-//    cv::Mat image = input_image.clone();
-//    preprocess_input(image);
-//    cv::Mat input_blob = cv::dnn::blobFromImage(image, 1.0, input_size, cv::Scalar(0, 0, 0), true);
-//    net.setInput(input_blob);
-//    const std::vector<cv::String>& out_names = net.getUnconnectedOutLayersNames();
-//    cv::Mat out_tensor = net.forward(out_names[0]);
-//        cv::Point maxLoc;
-//        cv::minMaxLoc(out_tensor,(double*)0,(double*)0,(cv::Point*)0,&maxLoc);
-//        out_name = labels[maxLoc.x];
-//}
-//
-//int main(int argc, char* argv[])
-//{
-////    if (argc != 2)
-////    {
-////        std::cout << "input a image file path" << std::endl;
-////        return -1;
-////    }
-//    std::string model_path("/Users/zhangzikai/Downloads/ResNetCls.onnx");
-//    std::string label_path("/Users/zhangzikai/Desktop/labels.txt");
-//    cv::Size input_size(224, 224);
-//    cv::Mat test_image = cv::imread("/Users/zhangzikai/Desktop/yellow.jpg");
-//    ONNXClassifier classifier(model_path, label_path, input_size);
-//    std::string result;
-//    classifier.Classify(test_image, result);
-//        std::cout<<"result: "<<result<<std::endl;
-//    return 0;
-//}
 
-
-int main(int argc, char** argv)
+int main()
 {
+    
+//    string img_path="/Users/zhangzikai/Downloads/traffic_light_dataset/JPEGImages/000red/traffic_light_0001.jpg";
+    string video_path = "/home/ai/zzk/4.mp4";
+    string txt_path="/home/ai/zzk/easy_ml_inference/cnn_lights_recognize/4.txt";
+    
     TrafficLightsClassifier traffic_lights_classifier;
-//
-   cv::Mat image;
-   image = cv::imread("/Users/zhangzikai/Desktop/off.jpg");
-   std::cout<<image.size<<std::endl;
 
-   vector<TrafficLightsParams> result=traffic_lights_classifier.traffic_lights_result(image,traffic_lights_classifier.traffic_lights_locations);
-//
-   std::cout<<result[0].target_id<<std::endl;
-   std::cout<<result[0].traffic_lights_type<<std::endl;
-   std::cout<<result[0].traffic_lights_location[0][0]<<std::endl;
-   std::cout<<result[0].traffic_lights_location[0][1]<<std::endl;
-   std::cout<<result[0].traffic_lights_location[0][2]<<std::endl;
-   std::cout<<result[0].traffic_lights_location[0][3]<<std::endl;
+    cv::VideoCapture cap(video_path);
+    cv::Mat frame;
     
-//    json j;
-//    j={{"low_green",10},
-//        {"up_green",50},
-//        {"low_yellow",100},
-//        {"up_yellow",115},
-//        {"low_red",116},
-//        {"up_red",130},
-//        {"low_off",0},
-//        {"up_off",10},
-//        {"shape",256}
-//    };
-//
-//
+    std::ifstream ReadFile;
+    ReadFile.open(txt_path,ios::in);
     
+    vector<vector<float>> boxes;
+    std::string out;
     
-   return 0;
+
+    if(ReadFile.fail())
+        {
+            return 0;
+        }
+    else{
+        while(!ReadFile.fail()){
+            getline(ReadFile, out, '\n');
+            // std::cout<<out<<std::endl;
+    
+            std::istringstream ss(out);
+        
+            vector<float> nums;
+            std::string num;
+
+            while(ss >> num) {
+                nums.push_back(stoi(num));
+            }
+//            std::cout<<nums[0]<<std::endl;
+            boxes.push_back(nums);
+            // break;
+        
+        }
+
+        boxes.pop_back();
+        std::cout<<"boxes size:";
+        std::cout<<boxes.size()<<std::endl;
+    }
+//
+    ReadFile.close();
+
+    int frame_num=cap.get(cv::CAP_PROP_FRAME_COUNT);
+    std::cout<<"frame_num:";
+    std::cout<<frame_num<<std::endl;
+
+    // int epoches=10;
+    // for(int epoch=0;epoch<epoches;epoch++){
+
+    int i=0;
+
+    while (cap.isOpened()){
+        cap>>frame;
+        // std::cout<<"epoch: "+to_string(epoch)<<std::endl;
+
+        if(frame.empty()){
+            std::cout<<"frame is empty!"<<std::endl;
+            break;
+        }
+
+        if(i>0&i<frame_num-1){
+
+            std::cout<<"frame:";
+            std::cout<<i<<std::endl;
+
+            vector<TrafficLightsParams> result=traffic_lights_classifier.traffic_lights_result(frame, boxes[i],true,true);
+            
+            std::string text = to_string(result[0].traffic_lights_type);
+
+            std::cout<<"target_ID:";
+            std::cout<<text<<std::endl;
+
+            // cv::putText(frame,text, cv::Point(8, 40), cv::FONT_HERSHEY_COMPLEX, 0.6, cv::Scalar(0, 255, 255), 2);
+
+            // cv::imshow("frame", frame);
+            // cv::waitKey(0);
+
+            
+        }
+        i++;   
+    }
+    // }
+    std::cout<<"finished"<<std::endl;
+    // cap.release();
+    return 0; 
 }

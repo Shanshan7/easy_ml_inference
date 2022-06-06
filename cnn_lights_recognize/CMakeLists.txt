@@ -39,6 +39,7 @@ target_link_libraries(test_traffic_lights_classifier
                       opencv_core
                       opencv_imgcodecs
                       opencv_imgproc
-                      opencv_videoio)
+                      opencv_videoio
+		      opencv_dnn)
 
 
