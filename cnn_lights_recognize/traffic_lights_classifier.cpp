@@ -210,6 +210,7 @@ vector<TrafficLightsParams> TrafficLightsClassifier::traffic_lights_result(cv::M
   
     if(onnx){
         resize(rgb_image_roi,onnx_img,cv::Size(onnx_shape,onnx_shape));
+        
         OnnxInference OnnxInference;
         vector<float> onnx_preds=OnnxInference.onnx_pred(onnx_img, onnx_path);
         

@@ -5,6 +5,7 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 #include "traffic_lights_classifier.h"
+#include "onnx/onnx_inference.h"
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -16,8 +17,8 @@ int main()
 {
     
 //    string img_path="/Users/zhangzikai/Downloads/traffic_light_dataset/JPEGImages/000red/traffic_light_0001.jpg";
-    string video_path = "/home/ai/zzk/4.mp4";
-    string txt_path="/home/ai/zzk/easy_ml_inference/cnn_lights_recognize/4.txt";
+    string video_path = "/home/lpj/Desktop/4.mp4";
+    string txt_path="/home/lpj/Desktop/easy_ml_inference/cnn_lights_recognize/4.txt";
     
     TrafficLightsClassifier traffic_lights_classifier;
 

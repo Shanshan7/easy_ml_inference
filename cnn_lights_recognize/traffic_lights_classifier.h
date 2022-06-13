@@ -45,8 +45,8 @@ private:
     int onnx_shape=224;
     double w1=0.5;
     double w2=0.5;
-    string onnx_path="/home/ai/zzk/easy_ml_inference/cnn_lights_recognize/ResNetCls.onnx";
-    const string json_path="/home/ai/zzk/easy_ml_inference/cnn_lights_recognize/hyp.json";
+    string onnx_path="/home/lpj/Desktop/easy_ml_inference/cnn_lights_recognize/ResNetCls.onnx";
+    const string json_path="/home/lpj/Desktop/easy_ml_inference/cnn_lights_recognize/hyp.json";
     vector<double> mean={0.5070751592371323,0.48654887331495095,0.4409178433670343};
     double std=0.2666410733740041;
 };

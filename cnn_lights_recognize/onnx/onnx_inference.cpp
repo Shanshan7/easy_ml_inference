@@ -34,7 +34,7 @@ OnnxInference::OnnxInference()
     in.close();
 }
 
-OnnxInference:: ~OnnxInference()
+OnnxInference::~OnnxInference()
 {
 
 }

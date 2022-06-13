@@ -1,1 +1,1 @@
-{"low_green":10,"low_off":0,"low_red":116,"low_yellow":100,"shape":224,"up_green":50,"up_off":10,"up_red":130,"up_yellow":115,"w1":0.5,"w2":0.5,"onnx_path":"/home/ai/zzk/easy_ml_inference/cnn_lights_recognize/ResNetCls.onnx"}
+{"low_green":10,"low_off":0,"low_red":116,"low_yellow":100,"shape":224,"up_green":50,"up_off":10,"up_red":130,"up_yellow":115,"w1":0.5,"w2":0.5,"onnx_path":"/home/lpj/Desktop/easy_ml_inference/cnn_lights_recognize/ResNetCls.onnx"}
