@@ -23,7 +23,7 @@ public:
     vector<cv::Vec3f> hough_circles(cv::Mat gray);
     double ** combine_circles(vector<cv::Vec3f> circles,cv::Mat image);
     vector<TrafficLightsParams> traffic_lights_result(cv::Mat image,const std::vector<float> traffic_lights_locations,bool onnx=true,bool opencv=true);
-    vector<float> onnx_pred(cv::Mat image,string onnx_path);
+//    vector<float> onnx_pred(cv::Mat image,string onnx_path);
     
 
 public:

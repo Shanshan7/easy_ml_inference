@@ -8,6 +8,8 @@
 #include "json/json.h"
 #include <fstream>
 #include <numeric>
+#include "onnx/onnx_inference.h"
+
 
 
 TrafficLightsClassifier::TrafficLightsClassifier()
@@ -35,7 +37,7 @@ TrafficLightsClassifier::TrafficLightsClassifier()
         onnx_path=root["onnx_path"].asString();
     }
 
-    
+
     else
     {
         std::cout << "Error opening file\n";
@@ -169,13 +171,13 @@ vector<cv::Vec3f> TrafficLightsClassifier::hough_circles(cv::Mat gray){
     return circles;
 }
 
-vector<float> TrafficLightsClassifier::onnx_pred(cv::Mat image,string onnx_path){
-    cv::dnn::Net net = cv::dnn::readNetFromONNX(onnx_path);
-    cv::Mat blob = cv::dnn::blobFromImage(image,1/(std*255),cv::Size(opencv_shape,opencv_shape),cv::Scalar(mean[0],mean[1],mean[2])*255,true,false);  // 由图片加载数据 这里还可以进行缩放、归一化等预处理
-    net.setInput(blob);  // 设置模型输入
-    cv::Mat predict = net.forward(); // 推理出结果
-    return vector<float>(predict);
-}
+//vector<float> TrafficLightsClassifier::onnx_pred(cv::Mat image,string onnx_path){
+//    cv::dnn::Net net = cv::dnn::readNetFromONNX(onnx_path);
+//    cv::Mat blob = cv::dnn::blobFromImage(image,1/(std*255),cv::Size(opencv_shape,opencv_shape),cv::Scalar(mean[0],mean[1],mean[2])*255,true,false);  // 由图片加载数据 这里还可以进行缩放、归一化等预处理
+//    net.setInput(blob);  // 设置模型输入
+//    cv::Mat predict = net.forward(); // 推理出结果
+//    return vector<float>(predict);
+//}
 
 vector<TrafficLightsParams> TrafficLightsClassifier::traffic_lights_result(cv::Mat image,const vector<float> traffic_lights_locations,bool onnx,bool opencv){
     cv::Mat res_img,gray,rgb_image_roi,onnx_img;
@@ -208,7 +210,8 @@ vector<TrafficLightsParams> TrafficLightsClassifier::traffic_lights_result(cv::M
   
     if(onnx){
         resize(rgb_image_roi,onnx_img,cv::Size(onnx_shape,onnx_shape));
-        vector<float> onnx_preds=onnx_pred(onnx_img, onnx_path);
+        OnnxInference OnnxInference;
+        vector<float> onnx_preds=OnnxInference.onnx_pred(onnx_img, onnx_path);
         
         //if off is None
         onnx_preds.insert(onnx_preds.begin(),0);
