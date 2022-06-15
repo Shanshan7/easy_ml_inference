@@ -18,13 +18,17 @@ include_directories(${PROJECT_SOURCE_DIR}/../3rd_party/json/include)
 include_directories(${PROJECT_SOURCE_DIR}/../3rd_party/opencv/include)
 
 #collect image acquisition files
-#find_package(OpenCV REQUIRED)
+# find_package(OpenCV REQUIRED)
 
 link_directories(${PROJECT_SOURCE_DIR}/../3rd_party/opencv/lib)
 
 file(GLOB SRCS
     "${PROJECT_SOURCE_DIR}/*.cpp"
 	)
+
+file(GLOB ONNXSRCS
+    "${PROJECT_SOURCE_DIR}/onnx/*.cpp"
+)
 
 aux_source_directory(${PROJECT_SOURCE_DIR}/../3rd_party/json/src SRC_DIR)
 add_executable(test_traffic_lights_classifier ${SRC_DIR})
@@ -33,6 +37,7 @@ target_sources(test_traffic_lights_classifier
         PRIVATE
         "${PROJECT_SOURCE_DIR}/test_traffic_lights_classifier.cpp"
         ${SRCS}
+        ${ONNXSRCS}
         )
 
 # link libraries
