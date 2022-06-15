@@ -8,7 +8,7 @@
 #include "json/json.h"
 #include <fstream>
 #include <numeric>
-// #include "onnx/onnx_inference.h"
+#include "onnx/onnx_inference.h"
 
 
 
@@ -211,10 +211,10 @@ vector<TrafficLightsParams> TrafficLightsClassifier::traffic_lights_result(cv::M
     if(onnx){
         resize(rgb_image_roi,onnx_img,cv::Size(onnx_shape,onnx_shape));
 
-        vector<float> onnx_preds=onnx_pred(onnx_img, onnx_path);
+        // vector<float> onnx_preds=onnx_pred(onnx_img, onnx_path);
         
-        // OnnxInference OnnxInference;
-        // vector<float> onnx_preds=OnnxInference.onnx_pred(onnx_img, onnx_path);
+        OnnxInference OnnxInference;
+        vector<float> onnx_preds=OnnxInference.onnx_pred(onnx_img, onnx_path);
         
         //if off is None
         onnx_preds.insert(onnx_preds.begin(),0);

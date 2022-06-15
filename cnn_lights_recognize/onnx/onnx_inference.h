@@ -19,7 +19,7 @@ public:
 
 private:
     std::string onnx_path="/home/lpj/Desktop/easy_ml_inference/cnn_lights_recognize/ResNetCls.onnx";
-    const std::string json_path="/home/lpj/Desktop/easy_ml_inference/cnn_lights_recognize/hyp.json";
+    const std::string json_path="/home/edge/easy_data/easy_ml_inference/cnn_lights_recognize/hyp.json";
     std::vector<double> mean={0.5070751592371323,0.48654887331495095,0.4409178433670343};
     double std=0.2666410733740041;
     int opencv_shape=256;
