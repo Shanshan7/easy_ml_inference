@@ -1,0 +1,1 @@
+{"low_green":10,"low_off":0,"low_red":116,"low_yellow":100,"onnx_shape":224,"opencv_shape":256,"up_green":50,"up_off":10,"up_red":130,"up_yellow":115,"w1":0.5,"w2":0.5,"onnx_path":"/home/edge/easy_data/easy_ml_inference/cnn_lights_recognize/ResNetCls.onnx"}
