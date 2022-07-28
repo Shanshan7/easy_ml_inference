@@ -15,11 +15,9 @@ include_directories(${PROJECT_SOURCE_DIR}/)
 include_directories(${PROJECT_SOURCE_DIR}/common)
 include_directories(${PROJECT_SOURCE_DIR}/onnx)
 include_directories(${PROJECT_SOURCE_DIR}/../3rd_party/json/include)
-include_directories(${PROJECT_SOURCE_DIR}/../3rd_party/opencv/include)
 
 #collect image acquisition files
 # find_package(OpenCV REQUIRED)
-
 link_directories(${PROJECT_SOURCE_DIR}/../3rd_party/opencv/lib)
 
 file(GLOB SRCS
@@ -46,6 +44,4 @@ target_link_libraries(test_traffic_lights_classifier
                       opencv_imgcodecs
                       opencv_imgproc
                       opencv_videoio
-		              opencv_dnn)
-
-
+		                  opencv_dnn)

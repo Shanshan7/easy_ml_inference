@@ -1,5 +1,4 @@
-#ifndef _TRAFFIC_LIGHTS_CLASSIFIER_
-#define _TRAFFIC_LIGHTS_CLASSIFIER_
+#pragma once
 
 #include <iostream>
 #include <opencv2/core/core.hpp>
