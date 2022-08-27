@@ -22,7 +22,7 @@
 static constexpr int64_t IMG_WIDTH = 224;
 static constexpr int64_t IMG_HEIGHT = 224;
 static constexpr int64_t IMG_CHANNEL = 3;
-static constexpr int64_t TEST_TIMES = 1000;
+static constexpr int64_t TEST_TIMES = 10000;
 
 int main(int argc, char* argv[])
 {
