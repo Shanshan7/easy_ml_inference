@@ -1,7 +1,6 @@
 #ifndef LONLAT2UTM_H
 #define LONLAT2UTM_H
 
-double PI = 3.1415926;
 /**
  * @brief WGS84 TO UTM 
  * @details https://blog.csdn.net/bobsweetie/article/details/106824071
@@ -14,6 +13,7 @@ inline void LonLat2UTM(double longitude, double latitude, double& UTME, double& 
 	double lat = latitude;
 	double lon = longitude;
 
+	double PI = 3.1415926;
 	double kD2R = PI / 180.0;
 	double ZoneNumber = floor((lon - 1.5) / 3.0) + 1;
 	double L0 = ZoneNumber * 3.0;

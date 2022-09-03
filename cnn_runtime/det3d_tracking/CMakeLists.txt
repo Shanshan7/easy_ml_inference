@@ -6,7 +6,8 @@ cmake_minimum_required(VERSION 2.8)
 # set(CMAKE_C_COMPILER ${TOOLS_CHAIN_DIR}/bin/aarch64-linux-gnu-gcc)
 # set(CMAKE_CXX_COMPILER ${TOOLS_CHAIN_DIR}/bin/aarch64-linux-gnu-g++)
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Release)
 
 project(det3d_tracking)
 
@@ -27,9 +28,10 @@ include_directories(
 )
 message(${PCL_INCLUDE_DIRS})
 
-include_directories(${PROJECT_SOURCE_DIR})
-include_directories(${PROJECT_SOURCE_DIR}/smoke)
-include_directories(${PROJECT_SOURCE_DIR}/multi_tracking)
+include_directories(${PROJECT_SOURCE_DIR}/det3d_tracking)
+include_directories(${PROJECT_SOURCE_DIR}/lib)
+include_directories(${PROJECT_SOURCE_DIR}/lib/detector/smoke)
+include_directories(${PROJECT_SOURCE_DIR}/lib/tracker/multi_tracking)
 
 include_directories(
   ${CUDA_INCLUDE_DIRS}
@@ -40,9 +42,10 @@ link_directories(${PROJECT_SOURCE_DIR}/../../3rd_party/tensorrt/lib)
 
 #collect image acquisition files
 file(GLOB SRCS
-    "${PROJECT_SOURCE_DIR}/*cpp"
-    "${PROJECT_SOURCE_DIR}/smoke/*.cc"
-    "${PROJECT_SOURCE_DIR}/multi_tracking/*.cpp"
+    "${PROJECT_SOURCE_DIR}/det3d_tracking/*.cpp"
+    "${PROJECT_SOURCE_DIR}/lib/*.cpp"
+    "${PROJECT_SOURCE_DIR}/lib/detector/smoke/*.cc"
+    "${PROJECT_SOURCE_DIR}/lib/tracker/multi_tracking/*.cpp"
 	)
 
 add_executable(${PROJECT_NAME} "")

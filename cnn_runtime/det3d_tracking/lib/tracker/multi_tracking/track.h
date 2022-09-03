@@ -6,44 +6,20 @@
 #ifndef TRACK_H
 #define TRACK_H
 
-#include<string>
-#include<iostream>
-#include<stdlib.h>
-#include<vector>
+#include <string>
+#include <iostream>
+#include <stdlib.h>
+#include <vector>
 
 //OpenCV
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgproc.hpp>
+// #include <opencv2/opencv.hpp>
+// #include <opencv2/imgproc.hpp>
 
-#include<Eigen/Dense>
+// #include <Eigen/Dense>
 
-#include"imm_ukf.h"
-#include"readparam.h"
-
-struct DetectStruct{
-	int classname = 0;
-	float score;//detection score
-	float z;
-	float yaw;
-	Eigen::VectorXd position; // x,y
-	std::vector<float> box; //3D box in lidar h、w、l
-	std::vector<float> box2D; // 2D box in camera left top point and right down point
-	cv::RotatedRect rotbox;
-};
-
-struct Box{
-	float yaw;
-	float length;
-	float width;
-	float height;
-	float z;
-};
-
-struct TrackState{
-	int Confirmed = 1;
-	int UnConfirmed = 2;
-	int Delete = 3;
-};
+#include "joyson_obstacle_type.h"
+#include "imm_ukf.h"
+#include "readparam.h"
 
 
 class Track{

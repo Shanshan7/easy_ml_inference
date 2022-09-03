@@ -6,7 +6,6 @@
 #include <opencv2/imgproc.hpp>
 
 #include "smoke.h"
-#include "utils.h"
 
 
 #define IMAGE_H 375
