@@ -4,7 +4,8 @@
 #include <NvInfer.h>
 #include <opencv2/core.hpp>
 
-#include "tracker.h"
+#include "joyson_obstacle_type.h"
+#include "utils.h"
 
 class Logger : public nvinfer1::ILogger {
   public:

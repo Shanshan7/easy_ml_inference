@@ -135,7 +135,7 @@ void IMM_UKF::UpdateProbability(Eigen::VectorXd& Z){
 	//std::cout<<"#################### IMM UpdateProbability #############################"<<std::endl;
 
 	std::vector<float> model_ita(model_size);
-	std::cout<<model_size<<std::endl;
+	// std::cout<<model_size<<std::endl;
 	for(int i=0; i<model_size; ++i){
 
 		imm_ukf_[i].Update(Z);
