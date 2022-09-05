@@ -51,7 +51,7 @@ class SMOKE {
     ~SMOKE();
 
     void Detect(const cv::Mat& raw_img);
-    void PostProcess(cv::Mat& input_img, std::vector<DetectStruct> &detects);
+    void GetObjects(std::vector<DetectStruct> &detects);
 
   private:
     void LoadEngine(const std::string& engine_path);

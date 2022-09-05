@@ -117,10 +117,6 @@ void SMOKE::LoadEngine(const std::string& engine_path) {
     runtime->destroy();
 }
 
-float Sigmoid(float x) {
-    return 1.0f / (1.0f + expf(-x));
-}
-
 void SMOKE::PostProcess(cv::Mat& input_img) {
     for (int i = 0; i < TOPK; ++i) {
         if (topk_scores_[i] < SCORE_THRESH) {
@@ -223,8 +219,7 @@ void SMOKE::PostProcess(cv::Mat& input_img) {
     // cv::waitKey(0);
 }
 
-
-void SMOKE::PostProcess(cv::Mat& input_img, std::vector<DetectStruct> &detects)
+void SMOKE::GetObjects(std::vector<DetectStruct> &detects)
 {
     for (int i = 0; i < TOPK; ++i) {
         if (topk_scores_[i] < SCORE_THRESH) {

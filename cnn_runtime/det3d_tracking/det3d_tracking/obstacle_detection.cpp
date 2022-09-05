@@ -53,12 +53,13 @@ void PerceptionCameraProcess::init()
 	tracker = new Tracker(param);
 
 	time = 0.1;
+	frame = 0;
 
 	classname2id["Car"] = 1;
 	classname2id["Pedestrian"] = 2;	
 	classname2id["Cyclist"] = 3;	
 
-	//read gps data get the longitude latitude
+	// read gps data get the longitude latitude
 	std::string gpspath = "/data/kitti_mini0020/oxts/"+file+".txt";
 	std::ifstream gps(gpspath);
 	if (gps) {
@@ -71,7 +72,6 @@ void PerceptionCameraProcess::init()
 		gpsdata = lines;
 		int size = gpsdata.size();
 	}
-	frame = 0;
 }
 
 bool PerceptionCameraProcess::process(cv::Mat& image)
@@ -111,7 +111,7 @@ bool PerceptionCameraProcess::process(cv::Mat& image)
 
 #ifdef USE_SMOKE
 	detector->Detect(image);
-	detector->PostProcess(image, Inputdets[frame]);
+	detector->GetObjects(Inputdets[frame]);
 #endif
 
 	if(frame == 0){

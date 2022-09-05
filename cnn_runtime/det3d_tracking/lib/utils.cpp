@@ -74,3 +74,7 @@ cv::Point cloud2camera(Eigen::Vector3d input){
 	cv::Point p2d = cv::Point(pimage(0)/pimage(2),pimage(1)/pimage(2));
 	return p2d;
 }
+
+float Sigmoid(float x) {
+    return 1.0f / (1.0f + expf(-x));
+}
