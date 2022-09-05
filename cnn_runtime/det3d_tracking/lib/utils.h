@@ -24,3 +24,4 @@
 int64_t gtm();
 Eigen::Vector3d camera2cloud(Eigen::Vector3d input);
 cv::Point cloud2camera(Eigen::Vector3d input);
+float Sigmoid(float x);

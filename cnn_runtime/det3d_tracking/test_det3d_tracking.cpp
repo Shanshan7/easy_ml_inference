@@ -26,7 +26,7 @@ int main()
 
   while (true)
   {
-	std::stringstream temp_str;
+	  std::stringstream temp_str;
     temp_str.str("");
     int index = 1000000 + frame;
     temp_str << index;
