@@ -38,13 +38,13 @@ PerceptionCameraProcess::~PerceptionCameraProcess()
 
 void PerceptionCameraProcess::init()
 {
-	std::string datapath = "/data/kitti_mini";
+	std::string datapath = "/docker_data/kitti_mini";
 	std::string file = "0020";
 	root_path = datapath + file;
 #ifdef USE_SMOKE
 	intrinsic = (cv::Mat_<float>(3, 3) << 
 			721.5377, 0.0, 609.5593, 0.0, 721.5377, 172.854, 0.0, 0.0, 1.0);
-    detector = new SMOKE("/data/easy_ml_inference/cnn_runtime/det3d_tracking/data/models/smoke_dla34.trt8", intrinsic);
+    detector = new SMOKE("/docker_data/easy_ml_inference/cnn_runtime/det3d_tracking/data/models/smoke_dla34.trt8", intrinsic);
 #else
 	load_offline_files();
 #endif
@@ -60,7 +60,7 @@ void PerceptionCameraProcess::init()
 	classname2id["Cyclist"] = 3;	
 
 	// read gps data get the longitude latitude
-	std::string gpspath = "/data/kitti_mini0020/oxts/"+file+".txt";
+	std::string gpspath = "/docker_data/kitti_mini0020/oxts/"+file+".txt";
 	std::ifstream gps(gpspath);
 	if (gps) {
 		boost::char_separator<char> sep_line { "\n" };
