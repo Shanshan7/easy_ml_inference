@@ -173,8 +173,7 @@ void Tracker::track(const Detection& detections, float& time, std::vector<Eigen:
 	if(!init_ || !start_tracking_){
 		Init(detections,time);
 	}else{	//开始跟踪
-
-		//std::cout<<"#################### TRACKER tracking #####################"<<std::endl;
+		// std::cout<<"#################### TRACKER tracking #####################"<<std::endl;
 		not_associated_.clear();
 		not_associated_.swap(not_associated_);
 		//级联关联
@@ -188,21 +187,22 @@ void Tracker::track(const Detection& detections, float& time, std::vector<Eigen:
 			}
 		}
 
-		//std::cout<<"confirmed_tracks_ "<<confirmed_tracks_.size()<<" "<<"unconfirmed_tracks_ "<<unconfirmed_tracks_.size()<<std::endl;
+		// std::cout<<"confirmed_tracks_ "<<confirmed_tracks_.size()<<" "<<"unconfirmed_tracks_ "<<unconfirmed_tracks_.size()<<std::endl;
 		tracks_.clear();
 		tracks_.swap(tracks_);
 
 		std::vector<bool> MeaisAsso(detections.size(),false);
 
 		cv::Mat_<int> q(cv::Size(confirmed_tracks_.size(), detections.size()), int(0));//基本关联矩阵q
+
 		
-    		Detection selected_detections;//关联上的量测
+    	Detection selected_detections;//关联上的量测
 		for(const auto& track:confirmed_tracks_){
 			track->Prediction(time);
 		}
 
 		std::vector<track_ptr> prun_tracks;
-    		associate(selected_detections, q, detections);
+    	associate(selected_detections, q, detections);
 
 		if(q.total()==0){
 			for(auto& track:confirmed_tracks_){
@@ -276,7 +276,6 @@ void Tracker::track(const Detection& detections, float& time, std::vector<Eigen:
 				}
 			}
 		}
-
 
     		/*std::cout<<"q \n "<<q<<"\n q.total() "<<q.total()<<std::endl;
 		if(q.total()==0){
@@ -366,7 +365,7 @@ void Tracker::track(const Detection& detections, float& time, std::vector<Eigen:
 					costMat.at<float>(i, j) = costs.at(i + j * UconfirmTrackSize );
 				}
 			}
-			//std::cout<<"##########  second costMat #####\n"<<costMat<<std::endl;
+			// std::cout<<"##########  second costMat #####\n"<<costMat<<std::endl;
 
 			AssignmentProblemSolver APS;//匈牙利算法
 			APS.Solve(costs, UconfirmTrackSize, detSize, assignments, AssignmentProblemSolver::optimal);
@@ -408,7 +407,7 @@ void Tracker::track(const Detection& detections, float& time, std::vector<Eigen:
 
 		}
 
-		//std::cout<<"######## not asso ###############"<<not_associated_.size()<<std::endl;
+		// std::cout<<"######## not asso ###############"<<not_associated_.size()<<std::endl;
 		/*for(auto& track:confirmed_tracks_){
 			tracks_.push_back(track);
 			Eigen::VectorXd x = track->GetState();
@@ -430,7 +429,7 @@ void Tracker::track(const Detection& detections, float& time, std::vector<Eigen:
 				result.push_back(save);
 		}
 
-		//std::cout<<"tracks "<<tracks_.size()<<std::endl;
+		// std::cout<<"tracks "<<tracks_.size()<<std::endl;
 		confirmed_tracks_.clear();
 		confirmed_tracks_.swap(confirmed_tracks_);
 		unconfirmed_tracks_.clear();
@@ -449,7 +448,7 @@ void Tracker::associate(Detection& _selected_detections, cv::Mat& _q,
 			const Detection& _detections)
 {	
 
-	//std::cout<<"#################### TRACKER ASSOCISTATE #########################"<<std::endl;
+	// std::cout<<"#################### TRACKER ASSOCISTATE #########################"<<std::endl;
 	//Extracting the measurements inside the validation gate for all the tracks
   	//Create a q matrix with a width = clutter + number of tracks
   	_q = cv::Mat_<int>(cv::Size(confirmed_tracks_.size() + 1, _detections.size()), int(0));
@@ -473,9 +472,8 @@ void Tracker::associate(Detection& _selected_detections, cv::Mat& _q,
       		tr_cv.at<double>(1) = tr(1);
       		const float& Sdt = track->S().determinant();
 
-			//std::cout<<"########## TRACKER Z  ##########\n "<<track->S()<<
-					//" \n"<<"########## TRACKER  P ##########\n "<< track->GetZ()<<"\n"<<track->S().determinant()<<std::endl;
-
+			// std::cout<<"########## TRACKER Z  ##########\n "<<track->S()<<
+			// " \n"<<"########## TRACKER  P ##########\n "<< track->GetZ()<<"\n"<<track->S().determinant()<<std::endl;
 
 			const Eigen::MatrixXd& Sin = track->S().inverse();//TODO GET MEASURE COVARIANCE
       		cv::Mat S_cv;
@@ -483,7 +481,7 @@ void Tracker::associate(Detection& _selected_detections, cv::Mat& _q,
       		const double& mah = cv::Mahalanobis(tr_cv, det_cv, S_cv);
       		const float& eucl = euclideanDist(detection.position, tr);
 
-			//std::cout<<"########## TRACKER Mahalanobis euclideanDist ##########\n "<<mah<<" "<<eucl<<" "<<(param_.pi * param_.pg_sigma * std::sqrt(fabs(Sdt)))<<std::endl;
+			// std::cout<<"########## TRACKER Mahalanobis euclideanDist ##########\n "<<mah<<" "<<eucl<<" "<<(param_.pi * param_.pg_sigma * std::sqrt(fabs(Sdt)))<<std::endl;
 			if(std::isnan(mah) || std::isnan(eucl) ||std::isnan((param_.pi * param_.pg_sigma * std::sqrt(fabs(Sdt)))))
 				std::abort();
 			//mah <= (param_.pi * param_.pg_sigma * std::sqrt(fabs(Sdt))) &&
@@ -503,7 +501,7 @@ void Tracker::associate(Detection& _selected_detections, cv::Mat& _q,
     	}
    		++j;
   	}
-	//std::cout<<"######## assosiate not asso ###############"<<not_associated_.size()<<std::endl;
+	// std::cout<<"######## assosiate not asso ###############"<<not_associated_.size()<<std::endl;
 
   	_q = _q(cv::Rect(0, 0, confirmed_tracks_.size() + 1, validationIdx));
   ////////////////////////////////////////////////////////////////////////////
@@ -572,11 +570,11 @@ Tracker::Matrices Tracker::generate_hypothesis(const cv::Mat& _q)
       			} //j
     		} //i
   	} 
-  /////////////////////////////////////////////////////////////////////////////////
-  Matrices association_matrices(hyp_num + 1);
-  std::copy(tmp_association_matrices.begin(), tmp_association_matrices.begin() + hyp_num + 1, 
-	    association_matrices.begin());
-	//std::cout<<"generate_hypothesis"<<std::endl;
+	/////////////////////////////////////////////////////////////////////////////////
+	Matrices association_matrices(hyp_num + 1);
+	std::copy(tmp_association_matrices.begin(), tmp_association_matrices.begin() + hyp_num + 1, 
+			association_matrices.begin());
+	// std::cout<<"generate_hypothesis"<<std::endl;
 
   return association_matrices;
 }

@@ -1,12 +1,16 @@
 #pragma once
 
 #include <iostream>
+#ifdef USE_SMOKE
 #include <NvInfer.h>
+#endif
 #include <opencv2/core.hpp>
 
 #include "joyson_obstacle_type.h"
 #include "utils.h"
 
+
+#ifdef USE_SMOKE
 class Logger : public nvinfer1::ILogger {
   public:
     explicit Logger(Severity severity = Severity::kWARNING)
@@ -38,20 +42,14 @@ class Logger : public nvinfer1::ILogger {
     Severity reportable_severity;
 };
 
-struct BboxDim {
-    float x;
-    float y;
-    float z;
-};
-
 class SMOKE {
   public:
     SMOKE(const std::string& engine_path, const cv::Mat& intrinsic);
           
     ~SMOKE();
 
-    void Detect(const cv::Mat& raw_img);
-    void GetObjects(std::vector<DetectStruct> &detects);
+    void detect(const cv::Mat& raw_img);
+    void getObjects(std::vector<DetectStruct> &detects);
 
   private:
     void LoadEngine(const std::string& engine_path);
@@ -73,3 +71,4 @@ class SMOKE {
     std::vector<float> base_depth_;
     std::vector<BboxDim> base_dims_;
 };
+#endif

@@ -30,7 +30,7 @@ message(${PCL_INCLUDE_DIRS})
 
 include_directories(${PROJECT_SOURCE_DIR}/det3d_tracking)
 include_directories(${PROJECT_SOURCE_DIR}/lib)
-include_directories(${PROJECT_SOURCE_DIR}/lib/detector/smoke)
+include_directories(${PROJECT_SOURCE_DIR}/lib/obstacle/detector/smoke)
 include_directories(${PROJECT_SOURCE_DIR}/lib/tracker/multi_tracking)
 
 include_directories(
@@ -44,7 +44,7 @@ link_directories(${PROJECT_SOURCE_DIR}/../../3rd_party/tensorrt/lib)
 file(GLOB SRCS
     "${PROJECT_SOURCE_DIR}/det3d_tracking/*.cpp"
     "${PROJECT_SOURCE_DIR}/lib/*.cpp"
-    "${PROJECT_SOURCE_DIR}/lib/detector/smoke/*.cc"
+    "${PROJECT_SOURCE_DIR}/lib/obstacle/detector/smoke/*.cc"
     "${PROJECT_SOURCE_DIR}/lib/tracker/multi_tracking/*.cpp"
 	)
 

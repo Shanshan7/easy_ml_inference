@@ -14,8 +14,6 @@
 
 using namespace std;
 typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-static string folder_lidar = "results/";
-static string format_lidar = "%|06|.txt";
 
 template <class Type>  
 Type stringToNum(const string& str)  
@@ -38,13 +36,15 @@ PerceptionCameraProcess::~PerceptionCameraProcess()
 
 void PerceptionCameraProcess::init()
 {
-	std::string datapath = "/docker_data/kitti_mini";
-	std::string file = "0020";
-	root_path = datapath + file;
+	intrinsic_ = (cv::Mat_<float>(3, 3) << 721.5377, 0.0, 609.5593, 
+	                                       0.0, 721.5377, 172.854,
+										   0.0, 0.0, 1.0);
+	// intrinsic_ = (cv::Mat_<float>(3, 3) << 1015.2, 0.0, 960.2334, 
+	// 									0.0, 1015.5, 487.1393,
+	// 									0.0, 0.0, 1.0);
 #ifdef USE_SMOKE
-	intrinsic = (cv::Mat_<float>(3, 3) << 
-			721.5377, 0.0, 609.5593, 0.0, 721.5377, 172.854, 0.0, 0.0, 1.0);
-    detector = new SMOKE("/docker_data/easy_ml_inference/cnn_runtime/det3d_tracking/data/models/smoke_dla34.trt8", intrinsic);
+    detector = new SMOKE("/docker_data/easy_ml_inference/cnn_runtime/det3d_tracking/data/models/smoke_dla34.trt8", 
+	                     intrinsic_);
 #else
 	load_offline_files();
 #endif
@@ -58,20 +58,6 @@ void PerceptionCameraProcess::init()
 	classname2id["Car"] = 1;
 	classname2id["Pedestrian"] = 2;	
 	classname2id["Cyclist"] = 3;	
-
-	// read gps data get the longitude latitude
-	std::string gpspath = "/docker_data/kitti_mini0020/oxts/"+file+".txt";
-	std::ifstream gps(gpspath);
-	if (gps) {
-		boost::char_separator<char> sep_line { "\n" };
-		std::stringstream buffer;
-		buffer << gps.rdbuf();
-		std::string contents(buffer.str());
-		tokenizer tok_line(contents, sep_line);
-		std::vector<std::string> lines(tok_line.begin(), tok_line.end());
-		gpsdata = lines;
-		int size = gpsdata.size();
-	}
 }
 
 bool PerceptionCameraProcess::process(cv::Mat& image)
@@ -87,111 +73,61 @@ bool PerceptionCameraProcess::process(cv::Mat& image)
 	double preheading = 0;
 	double prex = 0;
 	double prey = 0;
-	cv::Mat images = cv::Mat::zeros(608, 608, CV_8UC3);
 
 	double totaltime = 0;
 
 	cv::RNG rng(12345);
 
-	std::ofstream file_p;
-	//get the gps data and get the tranformation matrix
-	tokenizer tokn(gpsdata[frame], sep);
-	std::vector<std::string> temp_sep(tokn.begin(), tokn.end());
-
-	double UTME, UTMN;
-	double latitude = stringToNum<double>(temp_sep[0]);
-	double longitude = stringToNum<double>(temp_sep[1]);
-	double heading = stringToNum<double>(temp_sep[5]) - 90 * M_PI/180;
-	LonLat2UTM(longitude, latitude, UTME, UTMN);
-
-	Eigen::Isometry3d translate2origion;
-	Eigen::Isometry3d origion2translate;
-
 	double twosub = 0;
 
 #ifdef USE_SMOKE
-	detector->Detect(image);
-	detector->GetObjects(Inputdets[frame]);
+	detector->detect(image);
+	detector->getObjects(input_dets[frame]); // , rt_lidar_to_cam_);
 #endif
 
-	if(frame == 0){
-		Eigen::AngleAxisd roto(heading, Eigen::Vector3d::UnitZ());
-		rotZorigion = roto.toRotationMatrix();
-		porigion = rotZorigion;
-		orix = UTME;
-		oriy = UTMN;
-		porigion.translation() = Eigen::Vector3d(UTME, UTMN, 0);
-		oriheading = heading;
-
-		preheading = heading;
-		prex = UTME;
-		prey = UTMN;
-		rotZpre = rotZorigion;
-		ppre = rotZpre;
-		ppre.translation() = Eigen::Vector3d(UTME, UTMN, 0);
-	}
-	else{
-		Eigen::AngleAxisd rotnow(heading , Eigen::Vector3d::UnitZ());
-		Eigen::Matrix3d rotpnow = rotnow.toRotationMatrix();
-		Eigen::Isometry3d p2;
-		p2 = rotpnow;
-		p2.translation() = Eigen::Vector3d(UTME, UTMN, 0);
-		translate2origion = porigion.inverse() * p2;
-		origion2translate = p2.inverse() * porigion;
-		twosub = heading - oriheading;
-	}
-
-	int size = Inputdets[frame].size();
-	std::cout << "Inputdets Size: " << size << std::endl;
+	int size = input_dets[frame].size();
+	std::cout << "input_dets Size: " << size << std::endl;
 
 	for(int i = 0; i < size; ++i){
-		// std::vector<int> color = {0, 255, 0};
-		// draw3dbox(Inputdets[frame][i], image, color, 0);
-		Eigen::VectorXd v(2,1);
-		v(1)   = Inputdets[frame][i].position(0);//x in kitti lidar
-		v(0)   = -Inputdets[frame][i].position(1);//y in kitti lidar
-		if(frame!=0){
-			Eigen::Vector3d p_0(v(0), v(1), 0);
-			Eigen::Vector3d p_1;
-			p_1 = translate2origion * p_0;
-			v(0) = p_1(0);
-			v(1) = p_1(1);
-		}
+		std::vector<int> color = {0, 255, 0};
+		draw3dbox(input_dets[frame][i], image, color, 0);
 
-		Inputdets[frame][i].position(0) = v(0);
-		Inputdets[frame][i].position(1) = v(1);		     
+		Eigen::VectorXd v(2,1);
+		v(1)   = input_dets[frame][i].position(0);//x in kitti lidar
+		v(0)   = -input_dets[frame][i].position(1);//y in kitti lidar
+
+		input_dets[frame][i].position(0) = v(0);
+		input_dets[frame][i].position(1) = v(1);		     
 	}
 
-	std::vector<Eigen::VectorXd> result;
 	int64_t tm0 = gtm();
-	tracker->track(Inputdets[frame], time, result);
+	result.clear();
+	tracker->track(input_dets[frame], time, result);
 	int64_t tm1 = gtm();
 	printf("[INFO]update cast time: %ld us\n",  tm1-tm0);
 
 	double x = tm1-tm0;
 	totaltime += x;
 
-	int marker_id = 0;
 	for(int i=0; i<result.size(); ++i){
 
 		Eigen::VectorXd r = result[i];
 		if(frame != 0){
 			Eigen::Vector3d p_0(r(1), r(2), 0);
-			Eigen::Vector3d p_1;
-			p_1 = origion2translate * p_0;
-			r(1) = p_1(0);
-			r(2) = p_1(1);
+			r(1) = p_0(0);
+			r(2) = p_0(1);
 		}
 
 		DetectStruct det;
 		det.box2D.resize(4);
 		det.box.resize(3);
-		det.box[0]     = r(9);//h
-		det.box[1]     = r(8);//w
-		det.box[2]     = r(7);//l
-		det.z          = r(10);
-		det.yaw        = r(6);
-		det.position   = Eigen::VectorXd(2);
+		det.id = r(0);
+		det.box[0] = r(9);//h
+		det.box[1] = r(8);//w
+		det.box[2] = r(7);//l
+		det.z = r(10);
+		det.yaw = r(6);
+		det.position = Eigen::VectorXd(2);
 		det.position << r(2), -r(1);
 
 		if (!idcolor.count(int(r(0)))){
@@ -209,6 +145,32 @@ bool PerceptionCameraProcess::process(cv::Mat& image)
 	frame++;
 
 	return 0;
+}
+
+void PerceptionCameraProcess::getObjects(std::vector<DetectStruct> &camera_objects_)
+{
+	for(int i = 0; i < result.size(); ++i){
+
+		Eigen::VectorXd r = result[i];
+		if(frame != 0){
+			Eigen::Vector3d p_0(r(1), r(2), 0);
+			r(1) = p_0(0);
+			r(2) = p_0(1);
+		}
+
+		DetectStruct det;
+		det.box2D.resize(4);
+		det.box.resize(3);
+		det.id = r(0);
+		det.box[0] = r(9);//h
+		det.box[1] = r(8);//w
+		det.box[2] = r(7);//l
+		det.z = r(10);
+		det.yaw = r(6);
+		det.position = Eigen::VectorXd(2);
+		det.position << r(2), -r(1);
+		camera_objects_.push_back(det);
+	}
 }
 
 void PerceptionCameraProcess::draw3dbox(DetectStruct &det, cv::Mat& image, std::vector<int>& color, int id){
@@ -230,14 +192,14 @@ void PerceptionCameraProcess::draw3dbox(DetectStruct &det, cv::Mat& image, std::
 #ifdef USE_DET_FILES
 	double zAxisP[8] = {h, h, h, h, 0, 0, 0, 0};
 #endif
-	vector<cv::Point> imagepoint;
+	vector<cv::Point> image_point;
 	Eigen::Vector3d translation(x,y,z);
 
 	for (int i = 0; i < 8; i++) {
 		Eigen::Vector3d point_3d(xAxisP[i], yAxisP[i], zAxisP[i]);
 		Eigen::Vector3d rotationPoint_3d = BoxRotation * point_3d + translation;
-		cv::Point imgpoint = cloud2camera(rotationPoint_3d);
-		imagepoint.push_back(imgpoint);
+		cv::Point imgpoint = cloud2camera(rotationPoint_3d); // , rt_lidar_to_cam_, camera_intrinsic_);
+		image_point.push_back(imgpoint);
 	}
 
 	int r = color[0];
@@ -250,41 +212,41 @@ void PerceptionCameraProcess::draw3dbox(DetectStruct &det, cv::Mat& image, std::
 #else
 	float image_ground_ex = 0;
 #endif
-	float image_corner = imagepoint[0].y;
+	float image_corner = image_point[0].y;
 	if (image_corner > image_ground_ex)
 	{
-		cv::line(image, imagepoint[0], imagepoint[1],cv::Scalar(226, 43, 138), 2, CV_AA);
-		cv::line(image, imagepoint[1], imagepoint[2],cv::Scalar(r, g, b), 2, CV_AA);
-		cv::line(image, imagepoint[2], imagepoint[3],cv::Scalar(r, g, b), 2, CV_AA);
-		cv::line(image, imagepoint[3], imagepoint[0],cv::Scalar(r, g, b), 2, CV_AA);
+		cv::line(image, image_point[0], image_point[1],cv::Scalar(226, 43, 138), 2, CV_AA);
+		cv::line(image, image_point[1], image_point[2],cv::Scalar(r, g, b), 2, CV_AA);
+		cv::line(image, image_point[2], image_point[3],cv::Scalar(r, g, b), 2, CV_AA);
+		cv::line(image, image_point[3], image_point[0],cv::Scalar(r, g, b), 2, CV_AA);
 
-		cv::line(image, imagepoint[4], imagepoint[5],cv::Scalar(226, 43, 138), 2, CV_AA);
-		cv::line(image, imagepoint[5], imagepoint[6],cv::Scalar(r, g, b), 2, CV_AA);
-		cv::line(image, imagepoint[6], imagepoint[7],cv::Scalar(r, g, b), 2, CV_AA);
-		cv::line(image, imagepoint[7], imagepoint[4],cv::Scalar(r, g, b), 2, CV_AA);
+		cv::line(image, image_point[4], image_point[5],cv::Scalar(226, 43, 138), 2, CV_AA);
+		cv::line(image, image_point[5], image_point[6],cv::Scalar(r, g, b), 2, CV_AA);
+		cv::line(image, image_point[6], image_point[7],cv::Scalar(r, g, b), 2, CV_AA);
+		cv::line(image, image_point[7], image_point[4],cv::Scalar(r, g, b), 2, CV_AA);
 
-		cv::line(image, imagepoint[0], imagepoint[4],cv::Scalar(226, 43, 138), 2, CV_AA);
-		cv::line(image, imagepoint[1], imagepoint[5],cv::Scalar(226, 43, 138), 2, CV_AA);
-		cv::line(image, imagepoint[2], imagepoint[6],cv::Scalar(r, g, b), 2, CV_AA);
-		cv::line(image, imagepoint[3], imagepoint[7],cv::Scalar(r, g, b), 2, CV_AA);
+		cv::line(image, image_point[0], image_point[4],cv::Scalar(226, 43, 138), 2, CV_AA);
+		cv::line(image, image_point[1], image_point[5],cv::Scalar(226, 43, 138), 2, CV_AA);
+		cv::line(image, image_point[2], image_point[6],cv::Scalar(r, g, b), 2, CV_AA);
+		cv::line(image, image_point[3], image_point[7],cv::Scalar(r, g, b), 2, CV_AA);
 
-		cv::line(image, imagepoint[0], imagepoint[5],cv::Scalar(226, 43, 138), 2, CV_AA);
-		cv::line(image, imagepoint[1], imagepoint[4],cv::Scalar(226, 43, 138), 2, CV_AA);
+		cv::line(image, image_point[0], image_point[5],cv::Scalar(226, 43, 138), 2, CV_AA);
+		cv::line(image, image_point[1], image_point[4],cv::Scalar(226, 43, 138), 2, CV_AA);
 
 		std::string lbl = cv::format("ID: %d", id);
-		cv::putText(image, lbl, (imagepoint[0], imagepoint[1]), cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(r, g, b));
+		cv::putText(image, lbl, (image_point[0], image_point[1]), cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(r, g, b));
 
-		imagepoint.clear();
+		image_point.clear();
 	}
 }
 
 void PerceptionCameraProcess::load_offline_files()
 {
 	// read the label file
-	std::string labelpath = "/data/kitti_mini0020/label_02/0020.txt";
-	std::ifstream label(labelpath);
-	std::string trackclass = "Car";
-	std::vector<std::string> labeldata;
+	std::string label_path = "/docker_data/kitti_mini0020/label_02/0020.txt";
+	std::ifstream label(label_path);
+	std::string track_class = "Car";
+	std::vector<std::string> label_data;
 	if (label) {
 		boost::char_separator<char> sep_line { "\n" };
 		std::stringstream buffer;
@@ -292,18 +254,18 @@ void PerceptionCameraProcess::load_offline_files()
 		std::string contents(buffer.str());
 		tokenizer tok_line(contents, sep_line);
 		std::vector<std::string> lines(tok_line.begin(), tok_line.end());
-		labeldata = lines;
-		int size = labeldata.size();
+		label_data = lines;
+		int size = label_data.size();
 		
-		tokenizer tokn(labeldata[size-1], sep);
+		tokenizer tokn(label_data[size-1], sep);
 		vector<string> temp_sep(tokn.begin(), tokn.end());
 	}
 
 	int max_truncation = 0;
 	int max_occlusion = 2;
 
-	for(int i=0; i < labeldata.size(); ++i){
-		tokenizer tokn(labeldata[i], sep);
+	for(int i=0; i < label_data.size(); ++i){
+		tokenizer tokn(label_data[i], sep);
 		vector<string> temp_sep(tokn.begin(), tokn.end());
 		int fra        =  stringToNum<int>(temp_sep[0]);    //frame
 		string type    = temp_sep[2];                       //class
@@ -321,14 +283,14 @@ void PerceptionCameraProcess::load_offline_files()
 		float z        = stringToNum<float>(temp_sep[15]);  //z[m]
 		float yaw      = stringToNum<float>(temp_sep[16]);  //yaw angle[rad]
 
-		if(truncation>max_truncation || occlusion>max_occlusion || classname2id[type] != classname2id[trackclass])
+		if(truncation>max_truncation || occlusion>max_occlusion || classname2id[type] != classname2id[track_class])
 			continue;
 
 		Eigen::Vector3d cpoint;
 		cpoint << x,y,z;
 		//cout<<"came " <<cpoint<<"\n"<<endl;
 
-		Eigen::Vector3d ppoint = camera2cloud(cpoint);
+		Eigen::Vector3d ppoint = camera2cloud(cpoint); //, rt_lidar_to_cam_);
 		//cout<<"cloud: "<< ppoint<<"\n"<<endl;
 		
 		DetectStruct det;
@@ -347,7 +309,7 @@ void PerceptionCameraProcess::load_offline_files()
 		det.position   = Eigen::VectorXd(2);
 		det.position << ppoint(0),ppoint(1);
 
-		Inputdets[fra].push_back(det);
+		input_dets[fra].push_back(det);
 	}
 	std::cout << "detect file load done!!!" << std::endl;
 }

@@ -16,7 +16,7 @@
 int main()
 {
   int frame = 0;
-  std::string image_file_path = "/docker_data/kitti_mini0020/image_02/";
+  std::string image_file_path = "/docker_data/data/front_2M/";
   // PerceptionCameraProcess *perception_camera_process = nullptr;
   PerceptionCameraProcess perception_camera_process;
 
