@@ -23,15 +23,9 @@
 
 #include "lonlat2utm.h"
 #include "readparam.h"
-#include "smoke.h"
 #include "tracker.h"
+#include "smoke.h"
 
-
-struct pose{
-	double x;
-	double y;
-	double heading;
-};
 
 class PerceptionCameraProcess
 {
@@ -53,32 +47,35 @@ class PerceptionCameraProcess
      * @param fused_objects output fused object list
      */
     bool process(cv::Mat& image);
+    void getObjects(std::vector<DetectStruct> &camera_objects_);
 
   private:
     void draw3dbox(DetectStruct &det, cv::Mat& image, std::vector<int>& color, int id);
+    void transformTo2dbox();
     void load_offline_files();
 
     Tracker *tracker;
+  #ifdef USE_SMOKE
     SMOKE *detector;
+  #endif
+  
+    cv::Mat intrinsic_;
+    Eigen::Matrix<double, 3, 4> camera_intrinsic_;
+    Eigen::Matrix4d rt_cam_to_lidar_;
+    Eigen::Matrix4d rt_lidar_to_cam_;
+    Eigen::Matrix4d rt_imu_to_velo_params_;
 
-    // std::mutex data_mutex_;
-    // std::mutex fuse_mutex_;
-    // bool started_ = false;
-    // TrafficLightScenePtr scenes_;
-    // std::vector< std::shared_ptr< TrafficLightTrack > > trackers_;
-    // std::unique_ptr< HMTrackersObjectsAssociation > matcher_;
-    // FusionParams params_;
-
-    cv::Mat intrinsic;
-    std::unordered_map<int, std::vector<DetectStruct>> Inputdets;
-    std::vector<std::string> gpsdata;
+    std::unordered_map<int, std::vector<DetectStruct>> input_dets;
+    std::vector<Eigen::VectorXd> result;
+    std::vector<std::string> gps_data;
     std::unordered_map<std::string, int> classname2id;
     int frame;
     std::string root_path;
     float time;
     boost::char_separator<char> sep { " " };
+    std::unordered_map<int, std::vector<int>> idcolor;
 
     Eigen::Isometry3d porigion;
-    // Eigen::Isometry3d translate2origion;
-    std::unordered_map<int, std::vector<int>> idcolor;
+    Eigen::Isometry3d translate2origion;
+    Eigen::Isometry3d origion2translate;
 };

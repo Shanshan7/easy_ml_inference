@@ -1,6 +1,8 @@
 #include <fstream>
 #include <memory>
+#ifdef USE_SMOKE
 #include <NvInferPlugin.h>
+#endif
 #include <cuda_runtime_api.h>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -8,8 +10,8 @@
 #include "smoke.h"
 
 
-#define IMAGE_H 375
-#define IMAGE_W 1242
+#define IMAGE_H 1080
+#define IMAGE_W 1920
 #define INPUT_H 384
 #define INPUT_W 1280
 #define OUTPUT_H (INPUT_H / 4)
@@ -18,6 +20,7 @@
 #define TOPK 100
 
 
+#ifdef USE_SMOKE
 SMOKE::SMOKE(const std::string& engine_path, const cv::Mat& intrinsic)
         : intrinsic_(intrinsic) {
     buffer_size_[0] = 3 * INPUT_H * INPUT_W;
@@ -65,7 +68,7 @@ SMOKE::~SMOKE() {
     }
 }
 
-void SMOKE::Detect(const cv::Mat& raw_img) {
+void SMOKE::detect(const cv::Mat& raw_img) {
     // Preprocessing
     cv::Mat img_resize;
     cv::resize(raw_img, img_resize, cv::Size(INPUT_W, INPUT_H), cv::INTER_LINEAR);
@@ -219,7 +222,7 @@ void SMOKE::PostProcess(cv::Mat& input_img) {
     // cv::waitKey(0);
 }
 
-void SMOKE::GetObjects(std::vector<DetectStruct> &detects)
+void SMOKE::getObjects(std::vector<DetectStruct> &detects)
 {
     for (int i = 0; i < TOPK; ++i) {
         if (topk_scores_[i] < SCORE_THRESH) {
@@ -265,7 +268,7 @@ void SMOKE::GetObjects(std::vector<DetectStruct> &detects)
         cpoint << x, y, z;
         //cout<<"came " <<cpoint<<"\n"<<endl;
 
-        Eigen::Vector3d ppoint = camera2cloud(cpoint);
+        Eigen::Vector3d ppoint = camera2cloud(cpoint); // , rt_lidar_to_cam);
         //cout<<"cloud: "<< ppoint<<"\n"<<endl;
         
         DetectStruct det;
@@ -283,3 +286,4 @@ void SMOKE::GetObjects(std::vector<DetectStruct> &detects)
         detects.push_back(det);
     }
 }
+#endif
