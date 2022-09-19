@@ -10,8 +10,8 @@
 #include "smoke.h"
 
 
-#define IMAGE_H 1080
-#define IMAGE_W 1920
+#define IMAGE_H 375
+#define IMAGE_W 1242
 #define INPUT_H 384
 #define INPUT_W 1280
 #define OUTPUT_H (INPUT_H / 4)
