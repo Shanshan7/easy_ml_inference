@@ -67,15 +67,9 @@ class PerceptionCameraProcess
 
     std::unordered_map<int, std::vector<DetectStruct>> input_dets;
     std::vector<Eigen::VectorXd> result;
-    std::vector<std::string> gps_data;
     std::unordered_map<std::string, int> classname2id;
     int frame;
-    std::string root_path;
     float time;
     boost::char_separator<char> sep { " " };
     std::unordered_map<int, std::vector<int>> idcolor;
-
-    Eigen::Isometry3d porigion;
-    Eigen::Isometry3d translate2origion;
-    Eigen::Isometry3d origion2translate;
 };

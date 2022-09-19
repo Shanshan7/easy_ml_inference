@@ -62,23 +62,7 @@ void PerceptionCameraProcess::init()
 
 bool PerceptionCameraProcess::process(cv::Mat& image)
 {
-	// start position
-	Eigen::Matrix3d rotZorigion; 
-	double oriheading=0;
-	double orix =0;
-	double oriy = 0;
-
-	Eigen::Matrix3d rotZpre;
-	Eigen::Isometry3d ppre;
-	double preheading = 0;
-	double prex = 0;
-	double prey = 0;
-
-	double totaltime = 0;
-
 	cv::RNG rng(12345);
-
-	double twosub = 0;
 
 #ifdef USE_SMOKE
 	detector->detect(image);
@@ -88,17 +72,14 @@ bool PerceptionCameraProcess::process(cv::Mat& image)
 	int size = input_dets[frame].size();
 	std::cout << "input_dets Size: " << size << std::endl;
 
-	for(int i = 0; i < size; ++i){
-		std::vector<int> color = {0, 255, 0};
-		draw3dbox(input_dets[frame][i], image, color, 0);
+	// for(int i = 0; i < size; ++i){
+	// 	Eigen::VectorXd v(2,1);
+	// 	v(1)   = input_dets[frame][i].position(0);//x in kitti lidar
+	// 	v(0)   = -input_dets[frame][i].position(1);//y in kitti lidar
 
-		Eigen::VectorXd v(2,1);
-		v(1)   = input_dets[frame][i].position(0);//x in kitti lidar
-		v(0)   = -input_dets[frame][i].position(1);//y in kitti lidar
-
-		input_dets[frame][i].position(0) = v(0);
-		input_dets[frame][i].position(1) = v(1);		     
-	}
+	// 	input_dets[frame][i].position(0) = v(0);
+	// 	input_dets[frame][i].position(1) = v(1);		     
+	// }
 
 	int64_t tm0 = gtm();
 	result.clear();
@@ -106,17 +87,14 @@ bool PerceptionCameraProcess::process(cv::Mat& image)
 	int64_t tm1 = gtm();
 	printf("[INFO]update cast time: %ld us\n",  tm1-tm0);
 
-	double x = tm1-tm0;
-	totaltime += x;
-
 	for(int i=0; i<result.size(); ++i){
 
 		Eigen::VectorXd r = result[i];
-		if(frame != 0){
-			Eigen::Vector3d p_0(r(1), r(2), 0);
-			r(1) = p_0(0);
-			r(2) = p_0(1);
-		}
+		// if(frame != 0){
+		// 	Eigen::Vector3d p_0(r(1), r(2), 0);
+		// 	r(1) = p_0(0);
+		// 	r(2) = p_0(1);
+		// }
 
 		DetectStruct det;
 		det.box2D.resize(4);
@@ -128,7 +106,8 @@ bool PerceptionCameraProcess::process(cv::Mat& image)
 		det.z = r(10);
 		det.yaw = r(6);
 		det.position = Eigen::VectorXd(2);
-		det.position << r(2), -r(1);
+		// det.position << r(2), -r(1);
+		det.position << r(1), r(2);
 
 		if (!idcolor.count(int(r(0)))){
 					int red = rng.uniform(0, 255);
@@ -152,11 +131,11 @@ void PerceptionCameraProcess::getObjects(std::vector<DetectStruct> &camera_objec
 	for(int i = 0; i < result.size(); ++i){
 
 		Eigen::VectorXd r = result[i];
-		if(frame != 0){
-			Eigen::Vector3d p_0(r(1), r(2), 0);
-			r(1) = p_0(0);
-			r(2) = p_0(1);
-		}
+		// if(frame != 0){
+		// 	Eigen::Vector3d p_0(r(1), r(2), 0);
+		// 	r(1) = p_0(0);
+		// 	r(2) = p_0(1);
+		// }
 
 		DetectStruct det;
 		det.box2D.resize(4);
@@ -168,7 +147,8 @@ void PerceptionCameraProcess::getObjects(std::vector<DetectStruct> &camera_objec
 		det.z = r(10);
 		det.yaw = r(6);
 		det.position = Eigen::VectorXd(2);
-		det.position << r(2), -r(1);
+		// det.position << r(2), -r(1);
+		det.position << r(1), r(2);
 		camera_objects_.push_back(det);
 	}
 }
