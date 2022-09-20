@@ -38,7 +38,6 @@ int JoysonPredictionPre::GetInputs(std::string data_pickle_path, PredictionNetIn
 		return -1; 
 	}
 
-
 	if(reader.parse(in,root))
 	{
 	//读取根节点信息

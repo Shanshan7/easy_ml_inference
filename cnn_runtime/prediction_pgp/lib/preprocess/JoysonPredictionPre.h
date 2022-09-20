@@ -12,9 +12,9 @@
 #pragma once
 
 #include <json/json.h>
-#include <perception_msgs/FuseObjectList.h>
+// #include <perception_msgs/FuseObjectList.h>
 
-#include "perception_prediction/JoysonPredictionCommon.h"
+#include "JoysonPredictionCommon.h"
 #include "JoysonHDMapCommon.h"
 
 
@@ -80,49 +80,49 @@ private:
     /* data */
 private:
     /* function */
-    void GetTargetAgentGlobalPose(std::vector<perception_msgs::FuseObject> &fuse_objects, 
-                                  std::vector<GlobalPose> &global_pose_list);
+    // void GetTargetAgentGlobalPose(std::vector<perception_msgs::FuseObject> &fuse_objects, 
+    //                               std::vector<GlobalPose> &global_pose_list);
     
-    void GetMapRepresentation(hdmap::LaneInfo &lane_info,
-                              hdmap::CrosswalkInfo &crosswalk_info,
-                              hdmap::StopLineInfo &stop_line_info,
-                              std::vector<GlobalPose> &global_pose_list,
-                              MapRepresentation &map_representation);
+    // void GetMapRepresentation(hdmap::LaneInfo &lane_info,
+    //                           hdmap::CrosswalkInfo &crosswalk_info,
+    //                           hdmap::StopLineInfo &stop_line_info,
+    //                           std::vector<GlobalPose> &global_pose_list,
+    //                           MapRepresentation &map_representation);
     
-    void GetSurroundingAgentRepresentation(std::vector<perception_msgs::FuseObject> &fuse_objects,
-                                           SurroundingAgentRepresentation &surrounding_agent_representation);
+    // void GetSurroundingAgentRepresentation(std::vector<perception_msgs::FuseObject> &fuse_objects,
+    //                                        SurroundingAgentRepresentation &surrounding_agent_representation);
 
-    void GetTargetAgentRepresentation(std::vector<perception_msgs::FuseObject> &fuse_objects,
-                                      Eigen::Matrix<float, 1, 5, 5, Eigen::RowMajor> target_agent_feats);
+    // void GetTargetAgentRepresentation(std::vector<perception_msgs::FuseObject> &fuse_objects,
+    //                                   Eigen::Matrix<float, 1, 5, 5, Eigen::RowMajor> target_agent_feats);
 
-    void GetAgentNodeMasks(MapRepresentation &map_representation,
-                           SurroundingAgentRepresentation &surrounding_agent_representation,
-                           AgentNodeMasks &agent_node_masks);
+    // void GetAgentNodeMasks(MapRepresentation &map_representation,
+    //                        SurroundingAgentRepresentation &surrounding_agent_representation,
+    //                        AgentNodeMasks &agent_node_masks);
 
-    void GetInitialNode(MapRepresentation &map_representation,
-                        Eigen::Matrix<float, 1, -1, Eigen::RowMajor> init_node);
+    // void GetInitialNode(MapRepresentation &map_representation,
+    //                     Eigen::Matrix<float, 1, -1, Eigen::RowMajor> init_node);
 
-    /*
-        Generates vector HD map representation in the agent centric frame of reference
-        :param origin: (x, y, yaw) of target agent in global co-ordinates
-        :param lanes: lane centerline poses in global co-ordinates
-        :param polygons: stop-line and cross-walk polygons in global co-ordinates
-        :return:
-    */
-    void GetLaneNodeFeats(hdmap::LaneInfo &lane_info,
-                          hdmap::CrosswalkInfo &crosswalk_info,
-                          hdmap::StopLineInfo &stop_line_info,
-                          MapRepresentation &map_representation);
+    // /*
+    //     Generates vector HD map representation in the agent centric frame of reference
+    //     :param origin: (x, y, yaw) of target agent in global co-ordinates
+    //     :param lanes: lane centerline poses in global co-ordinates
+    //     :param polygons: stop-line and cross-walk polygons in global co-ordinates
+    //     :return:
+    // */
+    // void GetLaneNodeFeats(hdmap::LaneInfo &lane_info,
+    //                       hdmap::CrosswalkInfo &crosswalk_info,
+    //                       hdmap::StopLineInfo &stop_line_info,
+    //                       MapRepresentation &map_representation);
 
 public:
     JoysonPredictionPre(/* args */);
     ~JoysonPredictionPre();
 
-    void GetInputs(hdmap::LaneInfo &lane_info,
-                   hdmap::CrosswalkInfo &crosswalk_info,
-                   hdmap::StopLineInfo &stop_line_info,
-                   std::vector<perception_msgs::FuseObject> &fuse_objects, 
-                   PredictionNetInput prediction_net_input);
+    // void GetInputs(hdmap::LaneInfo &lane_info,
+    //                hdmap::CrosswalkInfo &crosswalk_info,
+    //                hdmap::StopLineInfo &stop_line_info,
+    //                std::vector<perception_msgs::FuseObject> &fuse_objects, 
+    //                PredictionNetInput prediction_net_input);
 
     int GetInputs(std::string data_pickle_path, PredictionNetInput &prediction_net_input);
 };

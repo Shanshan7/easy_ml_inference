@@ -11,9 +11,9 @@
 ******************************************************************************/
 #pragma once
 
-#include <perception_msgs/PredictedObjectList.h>
+// #include <perception_msgs/PredictedObjectList.h>
 
-#include "perception_prediction/JoysonPredictionCommon.h"
+#include "JoysonPredictionCommon.h"
 // #include "JoysonPredictionPre.h"
 
 
@@ -54,5 +54,5 @@ public:
     // int PGPNetRun(PredictionNetInput &prediction_net_input, float &traj);
     void ClusterTraj(float &traj, std::vector<prediction::PredictedObject> &cluster_object_trajectory);
     int PredictedPostprocess(prediction::PredictedObject &cluster_object_trajectory);
-    void StructTomsg(prediction::PredictedObject &spredictedtruct,perception_msgs::PredictedObject &objectmsg);
+    // void StructTomsg(prediction::PredictedObject &spredictedtruct,perception_msgs::PredictedObject &objectmsg);
 };
