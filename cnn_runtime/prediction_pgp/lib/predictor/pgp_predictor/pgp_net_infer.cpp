@@ -9,7 +9,7 @@
 #include "opencv2/imgproc.hpp"
 #include "opencv2/imgcodecs.hpp"
 
-#include "perception_prediction/JoysonPredictionCommon.h"
+#include "JoysonPredictionCommon.h"
 
 
 using namespace cv;

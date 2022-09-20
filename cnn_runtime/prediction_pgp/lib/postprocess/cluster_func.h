@@ -20,7 +20,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
 
-#include "perception_prediction/JoysonPredictionCommon.h"
+#include "JoysonPredictionCommon.h"
 
 struct ClusterDataInfo
 {

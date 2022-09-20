@@ -1,19 +1,38 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 2.8)
 
 # set(TOOLS_CHAIN_DIR /usr/local/linaro-aarch64-2020.09-gcc10.2-linux5.4) # 交叉工具链所在目录
 
-set(CMAKE_SYSTEM_NAME Linux)
+# set(CMAKE_SYSTEM_NAME Linux)
 # set(CMAKE_C_COMPILER ${TOOLS_CHAIN_DIR}/bin/aarch64-linux-gnu-gcc)
 # set(CMAKE_CXX_COMPILER ${TOOLS_CHAIN_DIR}/bin/aarch64-linux-gnu-g++)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Release)
 
-set(CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda-11.0)
+project(prediction_pgp)
 
-project(demo)
+add_definitions(-DUSE_SMOKE)
+# add_definitions(-DUSE_DET_FILES)
 
-include_directories(${PROJECT_SOURCE_DIR})
-# include_directories(${PROJECT_SOURCE_DIR}/onnx_runtime_cpp/include)
+find_package(CUDA REQUIRED)
+find_package(OpenCV REQUIRED)
+find_library(NVINFER NAMES nvinfer)
+find_library(NVINFER_PLUGIN NAMES nvinfer_plugin)
+find_package(Eigen3 REQUIRED)
+find_package(PCL 1.8 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS filesystem thread system program_options)
+
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${Boost_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS}
+)
+message(${PCL_INCLUDE_DIRS})
+
+include_directories(${PROJECT_SOURCE_DIR}/prediction)
+include_directories(${PROJECT_SOURCE_DIR}/lib/postprocess)
+include_directories(${PROJECT_SOURCE_DIR}/lib/predictor/kalman_predictor)
+include_directories(${PROJECT_SOURCE_DIR}/lib/predictor/pgp_predictor)
+include_directories(${PROJECT_SOURCE_DIR}/lib/preprocess)
 
 # onnxruntime
 include_directories(${PROJECT_SOURCE_DIR}/../../3rd_party/onnxruntime_gpu/include)
@@ -21,33 +40,27 @@ link_directories(${PROJECT_SOURCE_DIR}/../../3rd_party/onnxruntime_gpu/lib)
 
 #collect image acquisition files
 file(GLOB SRCS
-    "${PROJECT_SOURCE_DIR}/onnx_runtime_cpp/src/*.cpp"
+    "${PROJECT_SOURCE_DIR}/prediction/*.cpp"
+    "${PROJECT_SOURCE_DIR}/lib/postprocess/*.cpp"
+    "${PROJECT_SOURCE_DIR}/lib/predictor/pgp_predictor/*.cpp"
+    "${PROJECT_SOURCE_DIR}/lib/preprocess/JoysonPredictionPre.cpp"
 	)
 
-# opencv
-include_directories(${PROJECT_SOURCE_DIR}/../../3rd_party/opencv/include)
-link_directories(${PROJECT_SOURCE_DIR}/../../3rd_party/opencv/lib)
+add_executable(${PROJECT_NAME} "")
 
-# set(CUDA_BIN_PATH /usr/local/cuda-11.0/)
-# add_definitions(-DENABLE_GPU=1)
-
-# if(CUDA_FOUND)
-#   message("use cuda version")
-#   add_definitions(-DENABLE_GPU=1)
-# else()
-#   add_definitions(-DENABLE_GPU=0)
-# endif()
-
-add_executable(test "")
-
-target_sources(test
+target_sources(${PROJECT_NAME}
         PRIVATE
-        "${PROJECT_SOURCE_DIR}/main.cpp"
+        "${PROJECT_SOURCE_DIR}/test_prediction.cpp"
+        ${SRCS}
         )
 
 # link libraries
-target_link_libraries(test 
-                      onnxruntime
-                      opencv_core
-                      opencv_imgcodecs
-                      opencv_imgproc)
+target_link_libraries(${PROJECT_NAME}
+  # ${NVINFER}
+  # ${NVINFER_PLUGIN}
+  onnxruntime
+  ${CUDA_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  ${Boost_LIBRARIES} 
+  ${PCL_LIBRARIES}
+)
