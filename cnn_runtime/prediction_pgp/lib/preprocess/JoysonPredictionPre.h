@@ -29,10 +29,10 @@ struct GlobalPose
  */
 struct MapRepresentation
 {
-    typedef Eigen::Matrix<float, 1, -1, -1, 6, Eigen::RowMajor> lane_node_feats; // [batch_size, max_nodes, max_poses, node_feat_size]
-    typedef Eigen::Matrix<float, 1, -1, -1, 6, Eigen::RowMajor> lane_node_masks; // [batch_size, max_nodes, max_poses, node_feat_size]
-    typedef Eigen::Matrix<float, 1, -1, 15, Eigen::RowMajor> s_next; // [batch_size, max_nodes, traversal_horizon]
-    typedef Eigen::Matrix<float, 1, -1, 15, Eigen::RowMajor> edge_type; // [batch_size, max_nodes, traversal_horizon]
+    Eigen::Tensor<float, 3> lane_node_feats; // [batch_size, max_nodes, max_poses, node_feat_size]
+    Eigen::Tensor<float, 3> lane_node_masks; // [batch_size, max_nodes, max_poses, node_feat_size]
+    Eigen::MatrixXf s_next; // [batch_size, max_nodes, traversal_horizon]
+    Eigen::MatrixXf edge_type; // [batch_size, max_nodes, traversal_horizon]
 };
 
 // /** 
@@ -48,10 +48,10 @@ struct MapRepresentation
 
 struct SurroundingAgentRepresentation
 {
-    std::vector<Eigen::MatrixXf, Eigen::aligned_allocator<Eigen::MatrixXf>>  surrounding_vehicles; // [batch_size, max_vehicles, t_h, nbr_feat_size] 
-    std::vector<Eigen::MatrixXf, Eigen::aligned_allocator<Eigen::MatrixXf>> surrounding_vehicles_masks; // [batch_size, max_vehicles, t_h, nbr_feat_size] 
-    std::vector<Eigen::MatrixXf, Eigen::aligned_allocator<Eigen::MatrixXf>> surrounding_pedsetrains; // [batch_size, max_peds, t_h, nbr_feat_size]
-    std::vector<Eigen::MatrixXf, Eigen::aligned_allocator<Eigen::MatrixXf>> surrounding_pedsetrains_masks; // [batch_size, max_peds, t_h, nbr_feat_size] 
+    Eigen::Tensor<float, 3> surrounding_vehicles; // [batch_size, max_vehicles, t_h, nbr_feat_size] 
+    Eigen::Tensor<float, 3> surrounding_vehicles_masks; // [batch_size, max_vehicles, t_h, nbr_feat_size] 
+    Eigen::Tensor<float, 3> surrounding_pedsetrains; // [batch_size, max_peds, t_h, nbr_feat_size]
+    Eigen::Tensor<float, 3> surrounding_pedsetrains_masks; // [batch_size, max_peds, t_h, nbr_feat_size] 
 };
 
 /** 
@@ -61,17 +61,17 @@ struct SurroundingAgentRepresentation
  */
 struct AgentNodeMasks
 {
-    typedef Eigen::Matrix<float, 1, -1, -1, Eigen::RowMajor> vehicle_node_mask; // [batch_size, max_nodes, max_vehicles]
-    typedef Eigen::Matrix<float, 1, -1, -1, Eigen::RowMajor> ped_node_masks; // [batch_size, max_nodes, max_pedestrians]
+    Eigen::MatrixXf vehicle_node_mask; // [batch_size, max_nodes, max_vehicles]
+    Eigen::MatrixXf ped_node_masks; // [batch_size, max_nodes, max_pedestrians]
 };
 
 struct PredictionNetInput
 {
-    typedef Eigen::Matrix<float, 1, 5, 5, Eigen::RowMajor> target_agent_feats; // [batch_size, t_h, target_agent_feat_size]
+    Eigen::MatrixXf target_agent_feats; // [batch_size, t_h, target_agent_feat_size]
     MapRepresentation map_representation;
     SurroundingAgentRepresentation surrounding_agent_representation;
     AgentNodeMasks agent_node_masks;
-    typedef Eigen::Matrix<float, 1, -1, Eigen::RowMajor> init_node;
+    Eigen::VectorXf init_node;
 };
 
 class JoysonPredictionPre
@@ -125,4 +125,11 @@ public:
     //                PredictionNetInput prediction_net_input);
 
     int GetInputs(std::string data_pickle_path, PredictionNetInput &prediction_net_input);
+    void NetInputTransform(PredictionNetInput &prediction_net_input);
+
+public:
+    std::vector<float*> inputImgData;
+
+    int time_of_history;
+    int num_samples;
 };

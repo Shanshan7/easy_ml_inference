@@ -51,7 +51,7 @@ int JoysonPredictionPre::GetInputs(std::string data_pickle_path, PredictionNetIn
     // inputs
 	std::string instance_token = root["inputs"]["instance_token"].asString();
 	std::string sample_token = root["inputs"]["sample_token"].asString();
-		//读取数组信息
+	//读取数组信息
 	std::cout << "reading info:" << std::endl;
 	// 输出信息
 	// std::cout<<"instance_token:  "<<instance_token<<std::endl;
@@ -238,7 +238,6 @@ int JoysonPredictionPre::GetInputs(std::string data_pickle_path, PredictionNetIn
 		agent_node_masks_vehicles.push_back(agent_node_masks_vehicles_2);
 	}
 
-
 	// init_node
 	std::vector<double> init_node;
 	for (int i = 0; i < root["inputs"]["init_node"].size(); i++)
@@ -259,7 +258,6 @@ int JoysonPredictionPre::GetInputs(std::string data_pickle_path, PredictionNetIn
 	std::vector<std::vector<double>> traj;
 	for (int i = 0; i < root["ground_truth"]["traj"].size(); i++)
 	{
-
 		std::vector<double> traj_2;
 		for (int k = 0; k < root["ground_truth"]["traj"][i].size(); k++)
 		{
@@ -301,4 +299,29 @@ int JoysonPredictionPre::GetInputs(std::string data_pickle_path, PredictionNetIn
 	in.close();
 
 	return 0;
+}
+
+void JoysonPredictionPre::NetInputTransform(PredictionNetInput &prediction_net_input)
+{
+	// target_agent_feats
+	inputImgData[0] = prediction_net_input.target_agent_feats.data();
+
+	// map representation
+	inputImgData[1] = prediction_net_input.map_representation.lane_node_feats.data();
+	inputImgData[2] = prediction_net_input.map_representation.lane_node_masks.data();
+	inputImgData[3] = prediction_net_input.map_representation.s_next.data();
+	inputImgData[4] = prediction_net_input.map_representation.edge_type.data();
+
+	// surrounding agent representation
+	inputImgData[5] = prediction_net_input.surrounding_agent_representation.surrounding_vehicles.data();
+	inputImgData[6] = prediction_net_input.surrounding_agent_representation.surrounding_vehicles_masks.data();
+	inputImgData[7] = prediction_net_input.surrounding_agent_representation.surrounding_pedsetrains.data();
+	inputImgData[8] = prediction_net_input.surrounding_agent_representation.surrounding_pedsetrains_masks.data();
+
+	// surrounding agent mask
+	inputImgData[9] = prediction_net_input.agent_node_masks.vehicle_node_mask.data();
+	inputImgData[10] = prediction_net_input.agent_node_masks.ped_node_masks.data();
+
+	// init node
+	inputImgData[11] = prediction_net_input.init_node.data();
 }

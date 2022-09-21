@@ -5,13 +5,13 @@ cmake_minimum_required(VERSION 2.8)
 # set(CMAKE_SYSTEM_NAME Linux)
 # set(CMAKE_C_COMPILER ${TOOLS_CHAIN_DIR}/bin/aarch64-linux-gnu-gcc)
 # set(CMAKE_CXX_COMPILER ${TOOLS_CHAIN_DIR}/bin/aarch64-linux-gnu-g++)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_BUILD_TYPE Debug)
 # set(CMAKE_BUILD_TYPE Release)
 
 project(prediction_pgp)
 
-add_definitions(-DUSE_SMOKE)
+add_definitions(-DENABLE_DEBUG)
 # add_definitions(-DUSE_DET_FILES)
 
 find_package(CUDA REQUIRED)
@@ -50,7 +50,7 @@ add_executable(${PROJECT_NAME} "")
 
 target_sources(${PROJECT_NAME}
         PRIVATE
-        "${PROJECT_SOURCE_DIR}/test_prediction.cpp"
+        "${PROJECT_SOURCE_DIR}/test/testPgpInference.cpp"
         ${SRCS}
         )
 
