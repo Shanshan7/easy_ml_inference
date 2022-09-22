@@ -19,6 +19,7 @@
 #include <time.h>
 // #include <Eigen/Core>
 #include <Eigen/Dense>
+#include <unsupported/Eigen/CXX11/Tensor>
 #include <opencv2/core.hpp>
 
 #define OBJECT_NUM 1
