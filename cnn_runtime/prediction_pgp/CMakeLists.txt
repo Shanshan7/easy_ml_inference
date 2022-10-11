@@ -50,7 +50,7 @@ add_executable(${PROJECT_NAME} "")
 
 target_sources(${PROJECT_NAME}
         PRIVATE
-        "${PROJECT_SOURCE_DIR}/test/testPgpInference.cpp"
+        "${PROJECT_SOURCE_DIR}/test/testJoysonPrecition.cpp"
         ${SRCS}
         )
 
