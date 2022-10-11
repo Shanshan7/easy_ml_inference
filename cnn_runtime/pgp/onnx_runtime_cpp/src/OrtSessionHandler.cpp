@@ -203,13 +203,13 @@ void OrtSessionHandler::OrtSessionHandlerIml::initSession()
     sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
     m_session = Ort::Session(m_env, m_modelPath.c_str(), sessionOptions);
     m_numInputs = m_session.GetInputCount();
-    DEBUG_LOG("Model number of inputs: %d\n", m_numInputs);
+    // DEBUG_LOG("Model number of inputs: %d\n", m_numInputs);
 
     m_inputNodeNames.reserve(m_numInputs);
     m_inputTensorSizes.reserve(m_numInputs);
 
     m_numOutputs = m_session.GetOutputCount();
-    DEBUG_LOG("Model number of outputs: %d\n", m_numOutputs);
+    // DEBUG_LOG("Model number of outputs: %d\n", m_numOutputs);
 
     m_outputNodeNames.reserve(m_numOutputs);
     m_outputTensorSizes.reserve(m_numOutputs);
@@ -242,7 +242,7 @@ void OrtSessionHandler::OrtSessionHandlerIml::initModelInfo()
         ssInputs << m_inputShapes << std::endl;
         ssInputs << "Model input node names: ";
         ssInputs << m_inputNodeNames << std::endl;
-        DEBUG_LOG("%s\n", ssInputs.str().c_str());
+        // DEBUG_LOG("%s\n", ssInputs.str().c_str());
 #endif
     }
 
@@ -264,7 +264,7 @@ void OrtSessionHandler::OrtSessionHandlerIml::initModelInfo()
         ssOutputs << m_outputShapes << std::endl;
         ssOutputs << "Model output node names: ";
         ssOutputs << m_outputNodeNames << std::endl;
-        DEBUG_LOG("%s\n", ssOutputs.str().c_str());
+        // DEBUG_LOG("%s\n", ssOutputs.str().c_str());
 #endif
     }
 }
@@ -296,7 +296,7 @@ OrtSessionHandler::OrtSessionHandlerIml::operator()(const std::vector<float*>& i
 
     int count = 1;
     for (auto& elem : outputTensors) {
-        DEBUG_LOG("type of input %d: %s", count++, toString(elem.GetTensorTypeAndShapeInfo().GetElementType()).c_str());
+        // DEBUG_LOG("type of input %d: %s", count++, toString(elem.GetTensorTypeAndShapeInfo().GetElementType()).c_str());
         outputData.emplace_back(
             std::make_pair(std::move(elem.GetTensorMutableData<float>()), elem.GetTensorTypeAndShapeInfo().GetShape()));
     }

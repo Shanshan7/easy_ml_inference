@@ -35,17 +35,9 @@ struct MapRepresentation
     Eigen::MatrixXf edge_type; // [batch_size, max_nodes, traversal_horizon]
 };
 
-// /** 
-//  * @brief algorithm surrounding agent
-//  */
-// struct SurroundingAgentRepresentation
-// {
-//     typedef Eigen::Matrix<float, 1, -1, 5, 5, Eigen::RowMajor> surrounding_vehicles; // [batch_size, max_vehicles, t_h, nbr_feat_size] 
-//     typedef Eigen::Matrix<float, 1, -1, 5, 5, Eigen::RowMajor> surrounding_vehicles_masks; // [batch_size, max_vehicles, t_h, nbr_feat_size] 
-//     typedef Eigen::Matrix<float, 1, -1, 5, 5, Eigen::RowMajor> surrounding_pedsetrains; // [batch_size, max_peds, t_h, nbr_feat_size]
-//     typedef Eigen::Matrix<float, 1, -1, 5, 5, Eigen::RowMajor> surrounding_pedsetrains_masks; // [batch_size, max_peds, t_h, nbr_feat_size] 
-// };
-
+/** 
+ * @brief algorithm surrounding agent
+ */
 struct SurroundingAgentRepresentation
 {
     Eigen::Tensor<float, 3> surrounding_vehicles; // [batch_size, max_vehicles, t_h, nbr_feat_size] 
@@ -124,11 +116,14 @@ public:
     //                std::vector<perception_msgs::FuseObject> &fuse_objects, 
     //                PredictionNetInput prediction_net_input);
 
-    int GetInputs(std::string data_pickle_path, PredictionNetInput &prediction_net_input);
-    void NetInputTransform(PredictionNetInput &prediction_net_input);
+    int GetInputs(std::string data_pickle_path, 
+                  PredictionNetInput &prediction_net_input);
+    void NetInputTransform(PredictionNetInput &prediction_net_input,
+                           std::vector<float*> &input_img_data);
 
 public:
-    std::vector<float*> inputImgData;
+    // std::vector<float*> input_img_data;
+    std::vector<PredictionNetInput> prediction_input_list;
 
     int time_of_history;
     int num_samples;

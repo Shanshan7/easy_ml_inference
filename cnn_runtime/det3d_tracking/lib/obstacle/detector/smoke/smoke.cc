@@ -19,7 +19,6 @@
 #define SCORE_THRESH 0.3f
 #define TOPK 100
 
-
 #ifdef USE_SMOKE
 SMOKE::SMOKE(const std::string& engine_path, const cv::Mat& intrinsic)
         : intrinsic_(intrinsic) {
