@@ -36,12 +36,18 @@ PerceptionCameraProcess::~PerceptionCameraProcess()
 
 void PerceptionCameraProcess::init()
 {
-	intrinsic_ = (cv::Mat_<float>(3, 3) << 721.5377, 0.0, 609.5593, 
-	                                       0.0, 721.5377, 172.854,
-										   0.0, 0.0, 1.0);
-	// intrinsic_ = (cv::Mat_<float>(3, 3) << 1015.2, 0.0, 960.2334, 
-	// 									0.0, 1015.5, 487.1393,
-	// 									0.0, 0.0, 1.0);
+	// intrinsic_ = (cv::Mat_<float>(3, 3) << 721.5377, 0.0, 609.5593, 
+	//                                        0.0, 721.5377, 172.854,
+	// 									   0.0, 0.0, 1.0);
+	intrinsic_ = (cv::Mat_<float>(3, 3) << 1015.2, 0.0, 960.2334, 
+										0.0, 1015.5, 487.1393,
+										0.0, 0.0, 1.0);
+	// intrinsic_ = (cv::Mat_<float>(3, 3) << 1505.4, 0.0, 913.1008, 
+	// 									0.0, 1512.3, 489.8724,
+	// 									0.0, 0.0, 1.0);//matrix
+	// intrinsic_ = (cv::Mat_<float>(3, 3) << 1266.417203046554, 0.0, 816.2670197447984, 
+	// 									0.0, 1266.417203046554, 491.50706579294757,
+	// 									0.0, 0.0, 1.0);//nuScenes
 #ifdef USE_SMOKE
     detector = new SMOKE("/docker_data/easy_ml_inference/cnn_runtime/det3d_tracking/data/models/smoke_dla34.trt8", 
 	                     intrinsic_);
@@ -66,57 +72,62 @@ bool PerceptionCameraProcess::process(cv::Mat& image)
 
 #ifdef USE_SMOKE
 	detector->detect(image);
-	detector->getObjects(input_dets[frame]); // , rt_lidar_to_cam_);
+	detector->getObjects(input_dets[frame], rt_lidar_to_cam_);
 #endif
 
 	int size = input_dets[frame].size();
 	std::cout << "input_dets Size: " << size << std::endl;
 
-	// for(int i = 0; i < size; ++i){
-	// 	Eigen::VectorXd v(2,1);
-	// 	v(1)   = input_dets[frame][i].position(0);//x in kitti lidar
-	// 	v(0)   = -input_dets[frame][i].position(1);//y in kitti lidar
-
-	// 	input_dets[frame][i].position(0) = v(0);
-	// 	input_dets[frame][i].position(1) = v(1);		     
-	// }
-
-	int64_t tm0 = gtm();
-	result.clear();
-	tracker->track(input_dets[frame], time, result);
-	int64_t tm1 = gtm();
-	printf("[INFO]update cast time: %ld us\n",  tm1-tm0);
-
-	for(int i=0; i<result.size(); ++i){
-
-		Eigen::VectorXd r = result[i];
-		// if(frame != 0){
-		// 	Eigen::Vector3d p_0(r(1), r(2), 0);
-		// 	r(1) = p_0(0);
-		// 	r(2) = p_0(1);
-		// }
-
-		DetectStruct det;
-		det.box2D.resize(4);
-		det.box.resize(3);
-		det.id = r(0);
-		det.box[0] = r(9);//h
-		det.box[1] = r(8);//w
-		det.box[2] = r(7);//l
-		det.z = r(10);
-		det.yaw = r(6);
-		det.position = Eigen::VectorXd(2);
-		// det.position << r(2), -r(1);
-		det.position << r(1), r(2);
-
-		if (!idcolor.count(int(r(0)))){
-					int red = rng.uniform(0, 255);
-					int green = rng.uniform(0, 255);
-					int blue = rng.uniform(0, 255);			
-			idcolor[int(r(0))] = {red,green,blue};
-		}
-		draw3dbox(det, image, idcolor[int(r(0))], int(r(0)));
+	for(int i = 0; i < size; ++i){
+		std::vector<int> color = {0, 255, 0};
+		draw3dbox(input_dets[frame][i], image, color, 0);    
 	}
+
+	// // for(int i = 0; i < size; ++i){
+	// // 	Eigen::VectorXd v(2,1);
+	// // 	v(1)   = input_dets[frame][i].position(0);//x in kitti lidar
+	// // 	v(0)   = -input_dets[frame][i].position(1);//y in kitti lidar
+
+	// // 	input_dets[frame][i].position(0) = v(0);
+	// // 	input_dets[frame][i].position(1) = v(1);		     
+	// // }
+
+	// int64_t tm0 = gtm();
+	// result.clear();
+	// tracker->track(input_dets[frame], time, result);
+	// int64_t tm1 = gtm();
+	// printf("[INFO]update cast time: %ld us\n",  tm1-tm0);
+
+	// for(int i=0; i<result.size(); ++i){
+
+	// 	Eigen::VectorXd r = result[i];
+	// 	// if(frame != 0){
+	// 	// 	Eigen::Vector3d p_0(r(1), r(2), 0);
+	// 	// 	r(1) = p_0(0);
+	// 	// 	r(2) = p_0(1);
+	// 	// }
+
+	// 	DetectStruct det;
+	// 	det.box2D.resize(4);
+	// 	det.box.resize(3);
+	// 	det.id = r(0);
+	// 	det.box[0] = r(9);//h
+	// 	det.box[1] = r(8);//w
+	// 	det.box[2] = r(7);//l
+	// 	det.z = r(10);
+	// 	det.yaw = r(6);
+	// 	det.position = Eigen::VectorXd(2);
+	// 	// det.position << r(2), -r(1);
+	// 	det.position << r(1), r(2);
+
+	// 	if (!idcolor.count(int(r(0)))){
+	// 				int red = rng.uniform(0, 255);
+	// 				int green = rng.uniform(0, 255);
+	// 				int blue = rng.uniform(0, 255);			
+	// 		idcolor[int(r(0))] = {red,green,blue};
+	// 	}
+	// 	draw3dbox(det, image, idcolor[int(r(0))], int(r(0)));
+	// }
 	cv::imshow("camera", image);
 	cv::waitKey(1);
 
