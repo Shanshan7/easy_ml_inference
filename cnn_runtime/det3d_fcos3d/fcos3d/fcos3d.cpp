@@ -8,60 +8,59 @@
 
 #include "fcos3d.h"
 
-// #define IMAGE_H 375
-// #define IMAGE_W 1242
 #define IMAGE_H 1080
 #define IMAGE_W 1920
-// #define IMAGE_H 900
-// #define IMAGE_W 1600
 #define INPUT_H 1080
 #define INPUT_W 1920
 #define OUTPUT_H (INPUT_H / 4)
 #define OUTPUT_W (INPUT_W / 4)
-#define SCORE_THRESH 0.3f
-#define TOPK 100
+#define NUM_CLASSES 10
+#define SCORE_THRESH 0.2f
+#define NMS_THRESH 0.45f
+#define DIR_OFFSET 0.7854f
+#define TOPK 3479
+#define PI 3.1415926535897932
 
 
 FCOS3D::FCOS3D(const std::string& engine_path, const cv::Mat& intrinsic)
 {
     buffer_size_[0] = 3 * INPUT_H * INPUT_W;
-    buffer_size_[1] = TOPK * 8;
-    buffer_size_[2] = TOPK;
-    buffer_size_[3] = TOPK;
+    buffer_size_[1] = TOPK * 3;
+    buffer_size_[2] = TOPK * 9;
+    buffer_size_[3] = TOPK * 10;
+    buffer_size_[4] = TOPK * 1;
+    buffer_size_[5] = TOPK * 1;
+
     cudaMalloc(&buffers_[0], buffer_size_[0] * sizeof(float));
     cudaMalloc(&buffers_[1], buffer_size_[1] * sizeof(float));
     cudaMalloc(&buffers_[2], buffer_size_[2] * sizeof(float));
     cudaMalloc(&buffers_[3], buffer_size_[3] * sizeof(float));
+    cudaMalloc(&buffers_[4], buffer_size_[4] * sizeof(int));
+    cudaMalloc(&buffers_[5], buffer_size_[5] * sizeof(float));
+
     image_data_.resize(buffer_size_[0]);
-    bbox_preds_.resize(buffer_size_[1]);
-    topk_scores_.resize(buffer_size_[2]);
-    topk_indices_.resize(buffer_size_[3]);
+    mlvl_centers2d_temp.resize(buffer_size_[1]);
+    mlvl_bboxes_temp.resize(buffer_size_[2]);
+    mlvl_scores_temp.resize(buffer_size_[3]);
+    mlvl_centers2d.resize(TOPK);
+    mlvl_bboxes.resize(TOPK);
+    mlvl_scores.resize(TOPK);
+    mlvl_dir_scores.resize(buffer_size_[4]);
+    mlvl_centerness.resize(buffer_size_[5]);
     cudaStreamCreate(&stream_);
     LoadEngine(engine_path);
 
-    // // https://github.com/open-mmlab/mmdetection3d/blob/master/configs/_base_/models/smoke.py#L41
-    // base_depth_ = {28.01f, 16.32f};
-    // base_dims_.resize(3);  //pedestrian, cyclist, car
-    // base_dims_[0].x = 0.88f;
-    // base_dims_[0].y = 1.73f;
-    // base_dims_[0].z = 0.67f;
-    // base_dims_[1].x = 1.78f;
-    // base_dims_[1].y = 1.70f;
-    // base_dims_[1].z = 0.58f;
-    // base_dims_[2].x = 5.88f; // 3.88
-    // base_dims_[2].y = 2.13f; // 2.63
-    // base_dims_[2].z = 2.03f; // 2.53
-    // // Modify camera intrinsics due to scaling
+    // Modify camera intrinsics due to scaling and crop
     // std::cout << intrinsic_.at<float>(1, 2) << std::endl;
     // intrinsic_.at<float>(1, 2) = intrinsic_.at<float>(1, 2) - (1080-680);
-    
-    // intrinsic_.at<float>(0, 0) *= static_cast<float>(INPUT_W) / IMAGE_W;
-    // intrinsic_.at<float>(0, 2) *= static_cast<float>(INPUT_W) / IMAGE_W;
-    // intrinsic_.at<float>(1, 1) *= static_cast<float>(INPUT_H) / IMAGE_H;
-    // intrinsic_.at<float>(1, 2) *= static_cast<float>(INPUT_H) / IMAGE_H;
+    cam_to_img(0, 0) = cam_to_img(0, 0) * INPUT_W / IMAGE_W;
+    cam_to_img(0, 2) = cam_to_img(0, 2) * INPUT_W / IMAGE_W;
+    cam_to_img(1, 1) = cam_to_img(1, 1) * INPUT_W / IMAGE_W;
+    cam_to_img(1, 2) = cam_to_img(1, 2) * INPUT_W / IMAGE_W;
 }
 
-FCOS3D::~FCOS3D() {
+FCOS3D::~FCOS3D() 
+{
     cudaStreamDestroy(stream_);
     for (auto& buffer : buffers_) {
         cudaFree(buffer);
@@ -72,7 +71,8 @@ FCOS3D::~FCOS3D() {
     }
 }
 
-void FCOS3D::detect(const cv::Mat& raw_img) {
+void FCOS3D::detect(const cv::Mat& raw_img) 
+{
     // Preprocessing
     // cv::Rect roi_rect(0, 400, 1920, 680);
     // cv::Mat img_crop = raw_img(roi_rect).clone();
@@ -87,7 +87,7 @@ void FCOS3D::detect(const cv::Mat& raw_img) {
     const int bottom = pad_h - raw_img.rows;
     const int left = 0;
     const int right = pad_w - raw_img.cols;
-    std::cout << "pad: " << top << " " << bottom << " " << left << " " << right << std::endl;
+    // std::cout << "pad: " << top << " " << bottom << " " << left << " " << right << std::endl;
     cv::Mat dst_image;
     cv::copyMakeBorder(raw_img, dst_image, top, bottom, left, right, cv::INTER_LINEAR, cv::Scalar(103.530f, 116.280f, 123.675f));
 
@@ -105,19 +105,51 @@ void FCOS3D::detect(const cv::Mat& raw_img) {
     }
     std::cout << "image: " << data_chw << std::endl;
 
-    // // Do inference
-    // cudaMemcpyAsync(buffers_[0], image_data_.data(), buffer_size_[0] * sizeof(float), cudaMemcpyHostToDevice, stream_);
-    // context_->executeV2(&buffers_[0]);
-    // cudaMemcpyAsync(bbox_preds_.data(), buffers_[1], buffer_size_[1] * sizeof(float), cudaMemcpyDeviceToHost, stream_);
-    // cudaMemcpyAsync(topk_scores_.data(), buffers_[2], buffer_size_[2] * sizeof(float), cudaMemcpyDeviceToHost, stream_);
-    // cudaMemcpyAsync(topk_indices_.data(), buffers_[3], buffer_size_[3] * sizeof(float), cudaMemcpyDeviceToHost, stream_);
-    // // cudaStreamSynchronize(stream_);
+    // Do inference
+    cudaMemcpyAsync(buffers_[0], image_data_.data(), buffer_size_[0] * sizeof(float), cudaMemcpyHostToDevice, stream_);
+    context_->executeV2(&buffers_[0]);
+    cudaMemcpyAsync(mlvl_centers2d_temp.data(), buffers_[1], buffer_size_[1] * sizeof(float), cudaMemcpyDeviceToHost, stream_);
+    cudaMemcpyAsync(mlvl_bboxes_temp.data(), buffers_[2], buffer_size_[2] * sizeof(float), cudaMemcpyDeviceToHost, stream_);
+    cudaMemcpyAsync(mlvl_scores_temp.data(), buffers_[3], buffer_size_[3] * sizeof(float), cudaMemcpyDeviceToHost, stream_);
+    cudaMemcpyAsync(mlvl_dir_scores.data(), buffers_[4], buffer_size_[4] * sizeof(int), cudaMemcpyDeviceToHost, stream_);
+    cudaMemcpyAsync(mlvl_centerness.data(), buffers_[5], buffer_size_[5] * sizeof(float), cudaMemcpyDeviceToHost, stream_);
+    // cudaStreamSynchronize(stream_);
 
-    // // Decoding and visualization
-    // PostProcess(img_resize);
+    // transform temp data to struct data
+    for(int l = 0; l < mlvl_centers2d.size(); l++)
+    {
+        Eigen::Vector3f centers2d;
+        centers2d << mlvl_centers2d_temp[l*3], mlvl_centers2d_temp[l*3+1], \
+                     mlvl_centers2d_temp[l*3+2];
+        mlvl_centers2d[l] = centers2d;
+
+        BboxDim bbox_dim;
+        bbox_dim.x = mlvl_bboxes_temp[l*9];
+        bbox_dim.y = mlvl_bboxes_temp[l*9+1];
+        bbox_dim.depth = mlvl_bboxes_temp[l*9+2];
+        bbox_dim.w = mlvl_bboxes_temp[l*9+3];
+        bbox_dim.h = mlvl_bboxes_temp[l*9+4];
+        bbox_dim.l = mlvl_bboxes_temp[l*9+5];
+        bbox_dim.rotation = mlvl_bboxes_temp[l*9+6];
+        bbox_dim.velocity_x = mlvl_bboxes_temp[l*9+7];
+        bbox_dim.velocity_y = mlvl_bboxes_temp[l*9+8];
+        mlvl_bboxes[l] = bbox_dim;
+
+        for(int n = 0; n < NUM_CLASSES; n++)
+        {
+            std::vector<float> score;
+            score.resize(10);
+            score.clear();
+            score[n] = mlvl_scores_temp[l*10+n];
+            mlvl_scores.push_back(score);
+        }
+    }
+    // Decoding and visualization
+    PostProcess();
 }
 
-void FCOS3D::LoadEngine(const std::string& engine_path) {
+void FCOS3D::LoadEngine(const std::string& engine_path) 
+{
     std::ifstream in_file(engine_path, std::ios::binary);
     if (!in_file.is_open()) {
         std::cerr << "Failed to open engine file: " << engine_path << std::endl;
@@ -142,8 +174,10 @@ void FCOS3D::LoadEngine(const std::string& engine_path) {
     runtime->destroy();
 }
 
-void FCOS3D::PostProcess(cv::Mat& input_img) {
+void FCOS3D::PostProcess() 
+{
     // cls_scores: 5 * FPN feature map, 5种类型的输出（类别-10类，预测框-9个，方向类别-2个，属性-9个，中心点-1个）
+    // 预测框：几何中心坐标、长宽高以及朝向角，速度vx,vy(offset, depth, size, rot, velo)
     // 正样本点越靠近真实边界框的中心，那么center-ness的值越接近1，越远离真实边界框的中心，越接近0
     // 类别置信度，方向类别预测，方向类别置信度，属性预测，属性置信度，中心点，预测框
     // 1. 输出每个feature中score最高的nms_pre的所有目标物体信息
@@ -153,43 +187,125 @@ void FCOS3D::PostProcess(cv::Mat& input_img) {
     // 5. bev nms进行极大值抑制
     // 6. 最终输出框（相机坐标系下的9个点），得分，类别，属性
 
-    for cls_score, bbox_pred, dir_cls_pred, attr_pred, centerness, \
-                points in zip(cls_scores, bbox_preds, dir_cls_preds,
-                              attr_preds, centernesses, mlvl_points):
-            assert cls_score.size()[-2:] == bbox_pred.size()[-2:]
-            scores = cls_score.permute(1, 2, 0).reshape(
-                -1, self.cls_out_channels).sigmoid()
-            dir_cls_pred = dir_cls_pred.permute(1, 2, 0).reshape(-1, 2)
-            dir_cls_score = torch.max(dir_cls_pred, dim=-1)[1]
-            attr_pred = attr_pred.permute(1, 2, 0).reshape(-1, self.num_attrs)
-            attr_score = torch.max(attr_pred, dim=-1)[1]
-            centerness = centerness.permute(1, 2, 0).reshape(-1).sigmoid()
+    float score_thr = 0.2;
+    float nms_thr = 0.45;
+    float dir_offset = 0.7854;
+    
+    PointsImg2Cam();
+    // mlvl_bboxes[:, :3] = points_img2cam(mlvl_bboxes[:, :3], view)
+    // change local yaw to global yaw for 3D nms
+    DecodeYaw(dir_offset);
 
-            bbox_pred = bbox_pred.permute(1, 2,
-                                          0).reshape(-1,
-                                                     sum(self.group_reg_dims))
-            bbox_pred = bbox_pred[:, :self.bbox_code_size]
-            nms_pre = cfg.get('nms_pre', -1)
-            if nms_pre > 0 and scores.shape[0] > nms_pre:
-                max_scores, _ = (scores * centerness[:, None]).max(dim=1)
-                _, topk_inds = max_scores.topk(nms_pre)
-                points = points[topk_inds, :]
-                bbox_pred = bbox_pred[topk_inds, :]
-                scores = scores[topk_inds, :]
-                dir_cls_pred = dir_cls_pred[topk_inds, :]
-                centerness = centerness[topk_inds]
-                dir_cls_score = dir_cls_score[topk_inds]
-                attr_score = attr_score[topk_inds]
-            # change the offset to actual center predictions
-            bbox_pred[:, :2] = points - bbox_pred[:, :2]
-            if rescale:
-                bbox_pred[:, :2] /= bbox_pred[:, :2].new_tensor(scale_factor)
-            pred_center2d = bbox_pred[:, :3].clone()
-            bbox_pred[:, :3] = points_img2cam(bbox_pred[:, :3], view)
-            mlvl_centers2d.append(pred_center2d)
-            mlvl_bboxes.append(bbox_pred)
-            mlvl_scores.append(scores)
-            mlvl_dir_scores.append(dir_cls_score)
-            mlvl_attr_scores.append(attr_score)
-            mlvl_centerness.append(centerness)
+    // 2D BEV box of each box with rotation in XYWHR format, in shape (N, 5).
+    std::vector<RotatedBox<float>> mlvl_bboxes_for_nms;
+    for(int i = 0; i < mlvl_bboxes_for_nms.size(); i++)
+    {
+        mlvl_bboxes_for_nms[i].x_ctr = mlvl_bboxes[i].x;
+        mlvl_bboxes_for_nms[i].y_ctr = mlvl_bboxes[i].depth;
+        mlvl_bboxes_for_nms[i].w = mlvl_bboxes[i].w;
+        mlvl_bboxes_for_nms[i].h = mlvl_bboxes[i].h;
+        mlvl_bboxes_for_nms[i].a = -mlvl_bboxes[i].rotation;
+    }
+
+    std::vector<std::vector<float>> mlvl_nms_scores;
+    for(int j = 0; j < mlvl_scores.size(); j++)
+    {
+        std::vector<float> mlvl_nms_scores_vec;
+        for(int k = 0; k < mlvl_scores[j].size(); k++)
+        {
+            float num_score = mlvl_scores[j][k] * mlvl_centerness[j];
+            mlvl_nms_scores_vec.push_back(num_score);
+        }
+        mlvl_nms_scores.push_back(mlvl_nms_scores_vec);
+    }
+    
+    Box3dMultiClassNms(mlvl_bboxes_for_nms,
+                       mlvl_nms_scores,
+                       score_thr,
+                       nms_thr);
+
+    for(int l = 0; l < result_bboxes.size(); l++)
+    {
+        result_bboxes[l].y = result_bboxes[l].y + result_bboxes[l].h * 0.5;
+    }
+}
+
+void FCOS3D::PointsImg2Cam() 
+{
+    for(int i = 0; i < mlvl_bboxes.size(); i++)
+    {
+        Eigen::Vector4f point;
+        Eigen::Matrix4f homo_cam2img = Eigen::Matrix4f::Identity();
+
+        // xys plus depth
+        point << mlvl_bboxes[i].x * mlvl_bboxes[i].depth, mlvl_bboxes[i].y * mlvl_bboxes[i].depth, \
+                 mlvl_bboxes[i].depth, 1.0;
+        homo_cam2img.block<3,3>(0,0) = cam_to_img;
+
+        // Do operation in homogeneous coordinates.
+        Eigen::Vector4f points3D = homo_cam2img * point;
+        mlvl_bboxes[i].x = points3D(0);
+        mlvl_bboxes[i].y = points3D(1);
+        mlvl_bboxes[i].depth = points3D(2);
+    }
+}
+
+void FCOS3D::DecodeYaw(float dir_offset) 
+{
+    Eigen::Matrix4f homo_cam2img = Eigen::Matrix4f::Identity();
+    homo_cam2img.block<3,3>(0,0) = cam_to_img;
+    if(mlvl_bboxes.size() > 0)
+    {
+        for(int i = 0; i < mlvl_bboxes.size(); i++)
+        {
+            float val = mlvl_bboxes[i].rotation - dir_offset;
+            float dir_rot = val - floor(val / PI + 0) * PI;
+            float bbox_rotation = dir_rot + dir_offset + PI * mlvl_dir_scores[i];
+            mlvl_bboxes[i].rotation = atan2(mlvl_centers2d[i](0) - homo_cam2img(0, 2),
+                                homo_cam2img(0, 0)) + bbox_rotation;
+        }
+    }
+}
+
+void FCOS3D::Box3dMultiClassNms(std::vector<RotatedBox<float>> mlvl_bboxes_for_nms,
+                                std::vector<std::vector<float>> mlvl_scores,
+                                float score_thr,
+                                float nms_thr) 
+{
+    // do multi class nms
+    for(int i = 0; i < NUM_CLASSES; i++)
+    {
+        std::vector<int> indices;
+        indices.clear();
+        std::vector<float> score_index_vec;
+        std::vector<int> dir_scores_vec;
+        std::vector<BboxDim> bboxes_index_vec;
+        std::vector<RotatedBox<float>> bboxes_bev_index_vec;
+        // get bboxes and scores of this class
+        for(int j = 0; j < mlvl_bboxes.size(); j++)
+        {
+            if (mlvl_scores[j][i] > score_thr) {
+                score_index_vec.push_back(mlvl_scores[j][i]);
+                bboxes_index_vec.push_back(mlvl_bboxes[j]);
+                dir_scores_vec.push_back(mlvl_dir_scores[j]);
+                bboxes_bev_index_vec.push_back(mlvl_bboxes_for_nms[j]);
+            }
+            apply_nms_fast(bboxes_bev_index_vec, score_index_vec, score_thr, nms_thr, 0.01, 
+                       bboxes_index_vec.size(), &indices);
+#ifdef DEBUG
+            std::cout << "indices value" << std::endl;
+            for(int i = 0; i < indices.size(); i++)
+            {
+                std::cout << i << " " << indices[i] << std::endl;
+            }
+#endif
+        }
+        for(int k = 0; k < indices.size(); k++)
+        {
+            result_bboxes.push_back(bboxes_index_vec[k]);
+            result_scores.push_back(score_index_vec[k]);
+            result_labels.push_back(i);
+            result_dir_scores.push_back(dir_scores_vec[k]);
+        }
+    }
 }

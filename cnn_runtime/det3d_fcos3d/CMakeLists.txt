@@ -29,6 +29,7 @@ include_directories(
 message(${PCL_INCLUDE_DIRS})
 
 include_directories(${PROJECT_SOURCE_DIR}/fcos3d)
+include_directories(${PROJECT_SOURCE_DIR}/bev_nms)
 # include_directories(${PROJECT_SOURCE_DIR}/lib)
 # include_directories(${PROJECT_SOURCE_DIR}/lib/obstacle/detector/smoke)
 # include_directories(${PROJECT_SOURCE_DIR}/lib/tracker/multi_tracking)
@@ -43,7 +44,7 @@ link_directories(${PROJECT_SOURCE_DIR}/../../3rd_party/tensorrt/lib)
 #collect image acquisition files
 file(GLOB SRCS
     "${PROJECT_SOURCE_DIR}/fcos3d/*.cpp"
-    "${PROJECT_SOURCE_DIR}/lib/*.cpp"
+    "${PROJECT_SOURCE_DIR}/bev_nms/*.cpp"
 	)
 
 add_executable(${PROJECT_NAME} "")
