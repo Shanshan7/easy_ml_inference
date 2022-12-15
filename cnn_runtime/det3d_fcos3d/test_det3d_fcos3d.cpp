@@ -21,14 +21,11 @@ int main()
                                     0.0, 1015.5, 487.1393,
                                     0.0, 0.0, 1.0);
     FCOS3D *detector;
-    detector = new FCOS3D("/docker_data/easy_ml_inference/cnn_runtime/det3d_tracking/data/models/smoke_dla34.trt8", 
-	                     intrinsic_);
+    detector = new FCOS3D("/docker_data/easy_ml_inference/cnn_runtime/det3d_fcos3d/fcos3d.trt8");
 
-    std::string impath = "/docker_data/data/front_2M/imag23.png";
+    std::string impath = "/docker_data/data/front_2M/000605.png";
     cv::Mat rgbimage = cv::imread(impath);
     detector->detect(rgbimage);
-
-    RotatedBox<float> box;
 
     return 0;
 }

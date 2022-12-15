@@ -68,7 +68,7 @@ struct BboxDim {
 
 class FCOS3D {
   public:
-    FCOS3D(const std::string& engine_path, const cv::Mat& intrinsic);
+    FCOS3D(const std::string& engine_path);
           
     ~FCOS3D();
 
@@ -93,7 +93,7 @@ class FCOS3D {
     nvinfer1::IExecutionContext* context_;
     
     void* buffers_[6];
-    int buffer_size_[2];
+    int buffer_size_[6];
     std::vector<float> image_data_;
     std::vector<float> mlvl_centers2d_temp;
     std::vector<float> mlvl_bboxes_temp;
