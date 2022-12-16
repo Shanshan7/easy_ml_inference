@@ -9,15 +9,19 @@
 
 #include "smoke.h"
 
-
-#define IMAGE_H 375
-#define IMAGE_W 1242
+// #define IMAGE_H 375
+// #define IMAGE_W 1242
+#define IMAGE_H 680
+#define IMAGE_W 1920
+// #define IMAGE_H 900
+// #define IMAGE_W 1600
 #define INPUT_H 384
 #define INPUT_W 1280
 #define OUTPUT_H (INPUT_H / 4)
 #define OUTPUT_W (INPUT_W / 4)
 #define SCORE_THRESH 0.3f
 #define TOPK 100
+
 
 #ifdef USE_SMOKE
 SMOKE::SMOKE(const std::string& engine_path, const cv::Mat& intrinsic)
@@ -46,10 +50,13 @@ SMOKE::SMOKE(const std::string& engine_path, const cv::Mat& intrinsic)
     base_dims_[1].x = 1.78f;
     base_dims_[1].y = 1.70f;
     base_dims_[1].z = 0.58f;
-    base_dims_[2].x = 3.88f;
-    base_dims_[2].y = 1.63f;
-    base_dims_[2].z = 1.53f;    
+    base_dims_[2].x = 5.88f; // 3.88
+    base_dims_[2].y = 2.13f; // 2.63
+    base_dims_[2].z = 2.03f; // 2.53
     // Modify camera intrinsics due to scaling
+    std::cout << intrinsic_.at<float>(1, 2) << std::endl;
+    intrinsic_.at<float>(1, 2) = intrinsic_.at<float>(1, 2) - (1080-680);
+    
     intrinsic_.at<float>(0, 0) *= static_cast<float>(INPUT_W) / IMAGE_W;
     intrinsic_.at<float>(0, 2) *= static_cast<float>(INPUT_W) / IMAGE_W;
     intrinsic_.at<float>(1, 1) *= static_cast<float>(INPUT_H) / IMAGE_H;
@@ -69,8 +76,12 @@ SMOKE::~SMOKE() {
 
 void SMOKE::detect(const cv::Mat& raw_img) {
     // Preprocessing
+    cv::Rect roi_rect(0, 400, 1920, 680);
+    cv::Mat img_crop = raw_img(roi_rect).clone();
+    // cv::imshow("roi", img_crop);
+    // cv::waitKey();
     cv::Mat img_resize;
-    cv::resize(raw_img, img_resize, cv::Size(INPUT_W, INPUT_H), cv::INTER_LINEAR);
+    cv::resize(img_crop, img_resize, cv::Size(INPUT_W, INPUT_H), cv::INTER_LINEAR);
     // img_resize.convertTo(img_resize, CV_32FC3, 1.0f);
     float mean[3] {123.675f, 116.280f, 103.530f};
     float std[3] = {58.395f, 57.120f, 57.375f};
@@ -218,10 +229,11 @@ void SMOKE::PostProcess(cv::Mat& input_img) {
         }
     }
     cv::imshow("SMOKE_TRT", input_img);
-    // cv::waitKey(0);
+    cv::waitKey(0);
 }
 
-void SMOKE::getObjects(std::vector<DetectStruct> &detects)
+void SMOKE::getObjects(std::vector<DetectStruct> &detects, 
+                       Eigen::Matrix4d &rt_lidar_to_cam)
 {
     for (int i = 0; i < TOPK; ++i) {
         if (topk_scores_[i] < SCORE_THRESH) {
@@ -267,7 +279,7 @@ void SMOKE::getObjects(std::vector<DetectStruct> &detects)
         cpoint << x, y, z;
         //cout<<"came " <<cpoint<<"\n"<<endl;
 
-        Eigen::Vector3d ppoint = camera2cloud(cpoint); // , rt_lidar_to_cam);
+        Eigen::Vector3d ppoint = camera2cloud(cpoint); //, rt_lidar_to_cam);
         //cout<<"cloud: "<< ppoint<<"\n"<<endl;
         
         DetectStruct det;

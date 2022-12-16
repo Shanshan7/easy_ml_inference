@@ -49,7 +49,8 @@ class SMOKE {
     ~SMOKE();
 
     void detect(const cv::Mat& raw_img);
-    void getObjects(std::vector<DetectStruct> &detects);
+    void getObjects(std::vector<DetectStruct> &detects, 
+                       Eigen::Matrix4d &rt_lidar_to_cam);
 
   private:
     void LoadEngine(const std::string& engine_path);
