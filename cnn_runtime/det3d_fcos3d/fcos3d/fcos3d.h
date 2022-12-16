@@ -75,6 +75,12 @@ class FCOS3D {
     void detect(const cv::Mat& raw_img);
     // void getObjects(std::vector<DetectStruct> &detects, 
     //                    Eigen::Matrix4d &rt_lidar_to_cam);
+    void ShowResult(cv::Mat &input_img);
+
+    std::vector<BboxDim> result_bboxes;
+    std::vector<float> result_scores;
+    std::vector<int> result_dir_scores;
+    std::vector<int> result_labels;
 
   private:
     void LoadEngine(const std::string& engine_path);
@@ -106,9 +112,4 @@ class FCOS3D {
     std::vector<float> mlvl_centerness;
     // cv::Mat intrinsic_;
     Eigen::Matrix3f cam_to_img;
-
-    std::vector<BboxDim> result_bboxes;
-    std::vector<float> result_scores;
-    std::vector<int> result_dir_scores;
-    std::vector<int> result_labels;
 };

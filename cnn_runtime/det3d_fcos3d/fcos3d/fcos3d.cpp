@@ -53,6 +53,9 @@ FCOS3D::FCOS3D(const std::string& engine_path)
     LoadEngine(engine_path);
 
     // Modify camera intrinsics due to scaling and crop
+    cam_to_img << 1257.86253, 0.0, 827.241063, 
+                  0.0, 1257.86253, 450.915498,
+                  0.0, 0.0, 1.0;
     // std::cout << intrinsic_.at<float>(1, 2) << std::endl;
     // intrinsic_.at<float>(1, 2) = intrinsic_.at<float>(1, 2) - (1080-680);
     cam_to_img(0, 0) = cam_to_img(0, 0) * INPUT_W / IMAGE_W;
@@ -145,7 +148,6 @@ void FCOS3D::detect(const cv::Mat& raw_img)
         }
         mlvl_scores[l] = score;
     }
-    std::cout << "size: " << mlvl_scores_temp.size() << " " << mlvl_scores.size() << " " << mlvl_scores[0].size() << std::endl;
 
     // Decoding and visualization
     PostProcess();
@@ -232,11 +234,74 @@ void FCOS3D::PostProcess()
                        score_thr,
                        nms_thr);
     std::cout << "5. --Box3dMultiClassNms--" << std::endl;
-    for(int l = 0; l < result_bboxes.size(); l++)
-    {
-        result_bboxes[l].y = result_bboxes[l].y + result_bboxes[l].h * 0.5;
-    }
+    // for(int l = 0; l < result_bboxes.size(); l++)
+    // {
+    //     result_bboxes[l].y = result_bboxes[l].y + result_bboxes[l].h * 0.5;
+    // }
     std::cout << "6. --resultbboxes--" << std::endl;
+}
+
+void FCOS3D::ShowResult(cv::Mat &input_img)
+{
+    for(int i = 0; i < result_bboxes.size(); i++)
+    {
+        float x = result_bboxes[i].x;
+        float y = result_bboxes[i].y;
+        float z = result_bboxes[i].depth;
+        float w = result_bboxes[i].w;
+        float h = result_bboxes[i].h;
+        float l = result_bboxes[i].l;
+        float angle = result_bboxes[i].rotation;
+
+        cv::Mat intrinsic_ = (cv::Mat_<float>(3, 3) << 1257.86253, 0.0, 827.241063, 
+                                                0.0, 1257.86253, 450.915498,
+                                                0.0, 0.0, 1.0);
+
+        cv::Mat cam_corners = (cv::Mat_<float>(8, 3) << 
+                -w, -l, -h,     // (x0, y0, z0)
+                -w, -l,  h,     // (x0, y0, z1)
+                -w,  l,  h,     // (x0, y1, z1)
+                -w,  l, -h,     // (x0, y1, z0)
+                w, -l, -h,     // (x1, y0, z0)
+                w, -l,  h,     // (x1, y0, z1)
+                w,  l,  h,     // (x1, y1, z1)
+                w,  l, -h);    // (x1, y1, z0)
+        cam_corners = 0.5f * cam_corners;
+
+        // project to 2d to get image coords (uv)
+        cv::Mat rotation_y = cv::Mat::eye(3, 3, CV_32FC1);
+        rotation_y.at<float>(0, 0) = cosf(angle);
+        rotation_y.at<float>(0, 2) = sinf(angle);
+        rotation_y.at<float>(2, 0) = -sinf(angle);
+        rotation_y.at<float>(2, 2) = cosf(angle);
+        // cos, 0, sin
+        //   0, 1,   0
+        //-sin, 0, cos
+        cam_corners = cam_corners * rotation_y.t();
+        for (int i = 0; i < 8; ++i) {
+            cam_corners.at<float>(i, 0) += x;
+            cam_corners.at<float>(i, 1) += y;
+            cam_corners.at<float>(i, 2) += z;
+        }
+        std::cout << "cam_corners: " << cam_corners << std::endl;
+        cam_corners = cam_corners * intrinsic_.t();
+        std::vector<cv::Point2f> img_corners(8);
+        for (int i = 0; i < 8; ++i) {
+            img_corners[i].x = cam_corners.at<float>(i, 0) / cam_corners.at<float>(i, 2);
+            img_corners[i].y = cam_corners.at<float>(i, 1) / cam_corners.at<float>(i, 2);
+        }
+        for (int i = 0; i < 4; ++i) {
+            const auto& p1 = img_corners[i];
+            const auto& p2 = img_corners[(i + 1) % 4];
+            const auto& p3 = img_corners[i + 4];
+            const auto& p4 = img_corners[(i + 1) % 4 + 4];
+            cv::line(input_img, p1, p2, cv::Scalar(241, 101, 72), 1, cv::LINE_AA);
+            cv::line(input_img, p3, p4, cv::Scalar(241, 101, 72), 1, cv::LINE_AA);
+            cv::line(input_img, p1, p3, cv::Scalar(241, 101, 72), 1, cv::LINE_AA);
+        }
+    }
+    cv::imshow("SMOKE_TRT", input_img);
+    cv::waitKey(0);
 }
 
 void FCOS3D::PointsImg2Cam() 
@@ -252,7 +317,7 @@ void FCOS3D::PointsImg2Cam()
         homo_cam2img.block<3,3>(0,0) = cam_to_img;
 
         // Do operation in homogeneous coordinates.
-        Eigen::Vector4f points3D = homo_cam2img * point;
+        Eigen::Vector4f points3D = homo_cam2img.inverse() * point;
         mlvl_bboxes[i].x = points3D(0);
         mlvl_bboxes[i].y = points3D(1);
         mlvl_bboxes[i].depth = points3D(2);
