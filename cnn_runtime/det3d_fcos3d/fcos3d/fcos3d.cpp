@@ -193,7 +193,7 @@ void FCOS3D::PostProcess()
     // 6. 最终输出框（相机坐标系下的9个点），得分，类别，属性
 
     float score_thr = 0.2;
-    float nms_thr = 0.45;
+    float nms_thr = 0.05;
     float dir_offset = 0.7854;
 
     PointsImg2Cam();
@@ -238,6 +238,7 @@ void FCOS3D::PostProcess()
     // {
     //     result_bboxes[l].y = result_bboxes[l].y + result_bboxes[l].h * 0.5;
     // }
+    // float yaw = -det.yaw - 90 * M_PI / 180;
     std::cout << "6. --resultbboxes--" << std::endl;
 }
 
@@ -249,9 +250,10 @@ void FCOS3D::ShowResult(cv::Mat &input_img)
         float y = result_bboxes[i].y;
         float z = result_bboxes[i].depth;
         float w = result_bboxes[i].w;
-        float h = result_bboxes[i].h;
-        float l = result_bboxes[i].l;
+        float h = result_bboxes[i].l;
+        float l = result_bboxes[i].h;
         float angle = result_bboxes[i].rotation;
+        std::cout << "angle: " << angle << std::endl;
 
         cv::Mat intrinsic_ = (cv::Mat_<float>(3, 3) << 1257.86253, 0.0, 827.241063, 
                                                 0.0, 1257.86253, 450.915498,
@@ -301,7 +303,7 @@ void FCOS3D::ShowResult(cv::Mat &input_img)
         }
     }
     cv::imshow("SMOKE_TRT", input_img);
-    cv::waitKey(0);
+    cv::waitKey();
 }
 
 void FCOS3D::PointsImg2Cam() 
@@ -346,6 +348,10 @@ void FCOS3D::Box3dMultiClassNms(std::vector<RotatedBox<float>> mlvl_bboxes_for_n
                                 float score_thr,
                                 float nms_thr) 
 {
+    result_bboxes.clear();
+    result_scores.clear();
+    result_dir_scores.clear();
+    result_labels.clear();
     // do multi class nms
     for(int i = 0; i < NUM_CLASSES; i++)
     {
