@@ -85,6 +85,7 @@ class FCOS3D {
   private:
     void LoadEngine(const std::string& engine_path);
 
+    void PreProcess(const cv::Mat& raw_img);
     void PostProcess();
     void PointsImg2Cam();
     void DecodeYaw(float dir_offset);
