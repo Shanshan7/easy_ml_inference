@@ -10,19 +10,21 @@
 
 #define IMAGE_H 1080
 #define IMAGE_W 1920
-#define INPUT_H 1080
-#define INPUT_W 1920
+#define INPUT_H 640 // 1080
+#define INPUT_W 960 // 1920
 #define NUM_CLASSES 10
 #define SCORE_THRESH 0.2f
 #define NMS_THRESH 0.05f
 #define DIR_OFFSET 0.7854f
-#define TOPK 100 // 3645
+#define TOPK 440 // 3645
 #define PI 3.1415926535897932
 
 
 FCOS3D::FCOS3D(const std::string& engine_path)
 {
     buffer_size_[0] = 3 * INPUT_H * INPUT_W;
+    // 模型的修改为fp16后：目标中心mlvl_centers2d变成了2维（x, y）
+    // buffer_size_[1] = TOPK * 2;
     buffer_size_[1] = TOPK * 3;
     buffer_size_[2] = TOPK * 9;
     buffer_size_[3] = TOPK * 1;
@@ -86,9 +88,9 @@ void FCOS3D::PreProcess(const cv::Mat& raw_img)
     // cv::Rect roi_rect(0, 400, 1920, 680);
     // cv::Mat img_crop = raw_img(roi_rect).clone();
 
-    // cv::Mat img_resize;
+    cv::Mat img_resize;
     // img_resize = raw_img.clone();
-    // cv::resize(raw_img, img_resize, cv::Size(INPUT_W, INPUT_H), cv::INTER_LINEAR);
+    cv::resize(raw_img, img_resize, cv::Size(INPUT_W, INPUT_H), cv::INTER_LINEAR);
 
     // float divisor = 32.0;
     // const int pad_h = int(ceil(raw_img.rows / divisor)) * divisor;
@@ -104,10 +106,11 @@ void FCOS3D::PreProcess(const cv::Mat& raw_img)
     // cv::copyMakeBorder(raw_img, dst_image, top, bottom, left, right, cv::BorderTypes::BORDER_CONSTANT, cv::Scalar(103.530f, 116.280f, 123.675f));
     // std::cout << dst_image.rows << " " << dst_image.cols << std::endl;
 
+    // 归一化图像数据
     // raw_img.convertTo(raw_img, CV_32FC3, 1.0f);
     float mean[3] {103.530f, 116.280f, 123.675f};
     float std[3] = {1.0f, 1.0f, 1.0f};
-    uint8_t* data_hwc = reinterpret_cast<uint8_t*>(raw_img.data);
+    uint8_t* data_hwc = reinterpret_cast<uint8_t*>(img_resize.data);
     float* data_chw = image_data_.data();
     for (int c = 0; c < 3; ++c) {
         for (unsigned j = 0, img_size = INPUT_H * INPUT_W; j < img_size; ++j) {
@@ -209,15 +212,20 @@ void FCOS3D::PostProcess()
     // std::cout << std::endl;
 
     // transform temp data to struct data
-    // std::cout << "size: " << mlvl_centers2d.size() << std::endl;
     for(int l = 0; l < mlvl_centers2d.size(); l++)
     {
         Eigen::Vector3f centers2d;
+        // 模型的修改为fp16后：目标中心mlvl_centers2d变成了2维（x, y）, depth来自mlvl_bboxes的第3维
+        // centers2d << mlvl_centers2d_temp[l*3], mlvl_centers2d_temp[l*3+1], \
+        //              mlvl_centers2d_temp[l*3+2];
         centers2d << mlvl_centers2d_temp[l*3], mlvl_centers2d_temp[l*3+1], \
-                     mlvl_centers2d_temp[l*3+2];
+                     mlvl_bboxes_temp[l*9+2];
         mlvl_centers2d[l] = centers2d;
 
+        // 模型的修改为fp16后：mlvl_bboxes的（x, y）来自mlvl_centers2d的（x, y）
         BboxDim bbox_dim;
+        // bbox_dim.x = mlvl_centers2d_temp[l*3];
+        // bbox_dim.y = mlvl_centers2d_temp[l*3+1];
         bbox_dim.x = mlvl_bboxes_temp[l*9];
         bbox_dim.y = mlvl_bboxes_temp[l*9+1];
         bbox_dim.depth = mlvl_bboxes_temp[l*9+2];
