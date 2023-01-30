@@ -9,5 +9,5 @@ BackboneFile: ../model/backbone.onnx
 
 ModelConfig: ../cfgs/centerpoint_pillar02_secfpn_cyclic_aicv.yaml
 
-InputFile: ../data/001335.bin
+InputFile: ../data/n008-2018-08-01-15-16-36-0400__LIDAR_TOP__1533151604048025.pcd.bin
 OutputFile: ../data/boxes.txt

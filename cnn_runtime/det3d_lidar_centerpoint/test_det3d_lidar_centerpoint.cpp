@@ -125,37 +125,52 @@ void test(void) {
   std::string pfe_file = config["PfeFile"].as<std::string>();
   std::string backbone_file = config["BackboneFile"].as<std::string>();
   std::string model_config = config["ModelConfig"].as<std::string>();
-  std::string file_name = config["InputFile"].as<std::string>();
+  // std::string file_name = config["InputFile"].as<std::string>();
+
   std::cout << "pfe_file: " << pfe_file << std::endl;
   std::cout << "backbone_file: " << backbone_file << std::endl;
   std::cout << "config: " << model_config << std::endl;
-  std::cout << "data: " << file_name << std::endl;
+  // std::cout << "data: " << file_name << std::endl;
 
-  CenterPoint cp(config, pfe_file, backbone_file, model_config);
-
-  float *points_array;
-  int in_num_points;
-  in_num_points =
-      Bin2Arrary(points_array, file_name, config["LoadDim"].as<int>(),
-                 config["UseDim"].as<int>());
-  std::cout << "num points: " << in_num_points << std::endl;
-
-  for (int _ = 0; _ < 2; _++) {
-    std::vector<Box> out_detections;
-    cudaDeviceSynchronize();
-    cp.DoInference(points_array, in_num_points, out_detections);
-    cudaDeviceSynchronize();
-    size_t num_objects = out_detections.size();
-    std::cout << "detected objects: " << num_objects << std::endl;
-
-    std::string boxes_file_name = config["OutputFile"].as<std::string>();
-    Boxes2Txt(out_detections, boxes_file_name);
+  std::ifstream read_txt;
+  std::string line_data;
+  read_txt.open("/docker_data/data/nuscenes/samples/lidar.txt");
+  if(!read_txt.is_open()){
+      std::cout << "Not exits" << std::endl;
+      return;
   }
+  
+  while(std::getline(read_txt, line_data)){  
+    std::string file_name = "/docker_data/data/nuscenes/samples/LIDAR_TOP/" + line_data;
+    std::cout << file_name << std::endl;
 
-  delete[] points_array;
+    CenterPoint cp(config, pfe_file, backbone_file, model_config);
+
+    float *points_array;
+    int in_num_points;
+    in_num_points =
+        Bin2Arrary(points_array, file_name, config["LoadDim"].as<int>(),
+                  config["UseDim"].as<int>());
+    std::cout << "num points: " << in_num_points << std::endl;
+
+    for (int _ = 0; _ < 2; _++) {
+      std::vector<Box> out_detections;
+      cudaDeviceSynchronize();
+      cp.DoInference(points_array, in_num_points, out_detections);
+      cudaDeviceSynchronize();
+      size_t num_objects = out_detections.size();
+      std::cout << "detected objects: " << num_objects << std::endl;
+
+      std::string boxes_file_name = config["OutputFile"].as<std::string>();
+      Boxes2Txt(out_detections, boxes_file_name);
+    }
+
+    delete[] points_array;
+  }
 };
 
 int main(int argc, char **argv) {
   Getinfo();
   test();
+  // show_result_meshlab();
 }

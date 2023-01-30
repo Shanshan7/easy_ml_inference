@@ -1,22 +1,13 @@
-# SPDX-FileCopyrightText: Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-# SPDX-License-Identifier: Apache-2.0
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-cmake_minimum_required(VERSION 2.8.7)
+cmake_minimum_required(VERSION 3.18)
 project(det3d_lidar_centerpoint)
+# Find installed Open3D, which exports Open3D::Open3D
 find_package(yaml-cpp REQUIRED)
 find_package(CUDA REQUIRED)
+set(Open3D_ROOT /docker_data/easy_ml_inference/3rd_party/open3d)
+find_package(Open3D REQUIRED)
+
+include_directories(${Open3D_INCLUDE_DIRS})
+link_directories(${Open3D_LIBRARY_DIRS})
 
 if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL  "aarch64")
   set(CMAKE_C_COMPILER /usr/bin/aarch64-linux-gnu-gcc)
@@ -72,6 +63,7 @@ include_directories(
 
 link_directories(
 	${TENSORRT_LIBRARY_DIRS}
+  ${PROJECT_SOURCE_DIR}/../../3rd_party/open3d/lib
 	/usr/lib/aarch64-linux-gnu
   /usr/aarch64-linux-gnu/lib/
 )
@@ -82,9 +74,11 @@ file(GLOB_RECURSE SOURCE_FILES
 )
 
 cuda_add_executable(${PROJECT_NAME} test_det3d_lidar_centerpoint.cpp ${SOURCE_FILES})
+# add_executable(${PROJECT_NAME} test_open3d_vis.cpp)
 
 target_link_libraries(${PROJECT_NAME}
   libnvinfer.so
   libnvonnxparser.so
   yaml-cpp
+  ${Open3D_LIBRARIES}
 )
