@@ -25,21 +25,110 @@
 // ----------------------------------------------------------------------------
 
 #include <string>
+#include <fstream>
 
 #include "open3d/Open3D.h"
 
-int main(int argc, char *argv[]) {
-    if (argc == 2) {
-        std::string option(argv[1]);
-        if (option == "--skip-for-unit-test") {
-            open3d::utility::LogInfo("Skiped for unit test.");
-            return 0;
-        }
+
+// int main(int argc, char *argv[]) {
+//     int LoadDim = 5;
+
+//     std::ifstream read_txt;
+//     std::string line_data;
+//     read_txt.open("/docker_data/data/nuscenes/samples/lidar.txt");
+//     if(!read_txt.is_open()){
+//         std::cout << "Not exits" << std::endl;
+//         return -1;
+//     }
+
+//     auto cloud_ptr = std::make_shared<open3d::geometry::PointCloud>();
+//     // open3d::geometry::PointCloud cloud_ptr;
+    
+//     while(std::getline(read_txt, line_data)){  
+//         std::string file_name = "/docker_data/data/nuscenes/samples/LIDAR_TOP/" + line_data;
+//         std::cout << file_name << std::endl;
+
+//         std::ifstream embedding(file_name, std::ios::binary|std::ios::in);
+//         embedding.seekg(0,std::ios::end);
+//         int embedding_length = embedding.tellg() / sizeof(float);
+//         embedding.seekg(0, std::ios::beg);
+//         float* embedding_coreset = new float[embedding_length];
+//         embedding.read(reinterpret_cast<char*>(embedding_coreset), sizeof(float) * embedding_length);
+//         embedding.close();
+//         std::cout << "length: " << embedding_length << std::endl;
+
+//         cloud_ptr->points_.clear();
+//         cloud_ptr->points_.resize(embedding_length / LoadDim);
+//         for(int i = 0; i < embedding_length / LoadDim; i++)
+//         {
+//             cloud_ptr->points_[i] << embedding_coreset[i * 5], embedding_coreset[i * 5 + 1], 
+//                                  embedding_coreset[i * 5 + 2];
+//         }
+
+//         // auto cloud_ptr = open3d::io::CreatePointCloudFromFile("/docker_data/easy_ml_inference/cnn_runtime/det3d_lidar_centerpoint/data/n008-2018-08-01-15-16-36-0400__LIDAR_TOP__1533151603547590.pcd");
+//         open3d::visualization::DrawGeometries({cloud_ptr}, "TestPCDFileFormat", 1920, 1080);
+//     }
+
+//     return 0;
+// }
+
+int main()
+{
+    int LoadDim = 5;
+
+    std::ifstream read_txt;
+    std::string line_data;
+    read_txt.open("/docker_data/data/nuscenes/samples/lidar.txt");
+    if(!read_txt.is_open()){
+        std::cout << "Not exits" << std::endl;
+        return -1;
     }
 
-    auto sphere = open3d::geometry::TriangleMesh::CreateSphere(1.0);
-    sphere->ComputeVertexNormals();
-    sphere->PaintUniformColor({0.0, 1.0, 0.0});
-    open3d::visualization::DrawGeometries({sphere});
-    return 0;
+    open3d::visualization::Visualizer vis;
+    vis.CreateVisualizerWindow("Open3D", 1920, 1080);
+
+    Eigen::Vector3d origin;
+    origin << 0, 0, 0;
+    auto mesh_frame = open3d::geometry::TriangleMesh::CreateCoordinateFrame(1.0, origin);
+    vis.AddGeometry(mesh_frame);
+
+    auto points3d = std::make_shared<open3d::geometry::PointCloud>();
+    // 设置点云大小，背景颜色
+    vis.GetRenderOption().point_size_ = 1;
+    vis.GetRenderOption().background_color_ = {0.05, 0.05, 0.05};
+    vis.GetRenderOption().show_coordinate_frame_ = true;
+    vis.AddGeometry(points3d);
+
+    bool to_reset = true;
+    while(std::getline(read_txt, line_data)){  
+        std::string file_name = "/docker_data/data/nuscenes/samples/LIDAR_TOP/" + line_data;
+        std::cout << file_name << std::endl;
+
+        std::ifstream embedding(file_name, std::ios::binary|std::ios::in);
+        embedding.seekg(0,std::ios::end);
+        int embedding_length = embedding.tellg() / sizeof(float);
+        embedding.seekg(0, std::ios::beg);
+        float* embedding_coreset = new float[embedding_length];
+        embedding.read(reinterpret_cast<char*>(embedding_coreset), sizeof(float) * embedding_length);
+        embedding.close();
+
+        points3d->points_.clear();
+        points3d->points_.resize(embedding_length / LoadDim);
+        for(int i = 0; i < embedding_length / LoadDim; i++)
+        {
+            points3d->points_[i] << embedding_coreset[i * 5], embedding_coreset[i * 5 + 1], 
+                                 embedding_coreset[i * 5 + 2];
+        }
+
+         vis.UpdateGeometry(points3d);
+         if(to_reset)
+         {
+            vis.ResetViewPoint(true);
+            to_reset = false;
+         }
+         vis.PollEvents();
+         vis.UpdateRender();
+         vis.Run();
+    }
+    vis.DestroyVisualizerWindow();
 }

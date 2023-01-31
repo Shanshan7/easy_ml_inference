@@ -5,7 +5,9 @@
 #include <iostream>
 #include <string>
 
+#include "open3d/Open3D.h"
 #include "centerpoint/centerpoint.h"
+
 
 void Getinfo(void) {
   cudaDeviceProp prop;
@@ -118,6 +120,50 @@ void load_anchors(float *&anchor_data, std::string file_name) {
   return;
 }
 
+void draw_bboxes(open3d::visualization::Visualizer &vis, 
+                 std::shared_ptr<open3d::geometry::PointCloud> &points3d,
+                 std::vector<Box> &out_detections)
+{
+    int rot_axis = 2;
+    int out_detections_size = out_detections.size();
+    // in_box_color = np.array(points_in_box_color)
+    // points_in_box_color=(1, 0, 0),
+
+    for (int i = 0; i < out_detections_size; i++)
+    {
+        Eigen::Vector3d center(out_detections[i].x, out_detections[i].y, out_detections[i].z);
+        Eigen::Vector3d dim(out_detections[i].l, out_detections[i].w, out_detections[i].h);
+        double yaw = out_detections[i].r;
+        Eigen::Matrix3d rot_mat = open3d::utility::RotationMatrixY(yaw);
+
+        center(rot_axis) += dim(rot_axis) / 2;  // bottom center to gravity center
+        auto box3d = open3d::geometry::OrientedBoundingBox(center, rot_mat, dim);
+
+        auto line_set = open3d::geometry::LineSet::CreateFromOrientedBoundingBox(box3d);
+        // add direction
+        line_set->lines_.push_back(Eigen::Vector2i(1, 4));
+        line_set->lines_.push_back(Eigen::Vector2i(6, 7));
+        line_set->PaintUniformColor(Eigen::Vector3d(0, 1, 0));
+        // draw bboxes on visualizer
+        vis.AddGeometry(line_set);
+
+        // add arrow-like line
+        Eigen::Vector3d offset(dim(0) / 2.0 * cos(yaw), dim(0) / 2.0 * sin(yaw), 0.0);
+        auto arrow_set = std::make_shared<open3d::geometry::LineSet>();
+        arrow_set->points_.push_back(center);
+        arrow_set->points_.push_back(center + offset);
+        arrow_set->lines_.push_back(Eigen::Vector2i(0, 1));
+        arrow_set->PaintUniformColor(Eigen::Vector3d(0, 1, 0));
+        vis.AddGeometry(arrow_set);
+        // change the color of points which are in box
+        // std::vector<size_t> indices = box3d.GetPointIndicesWithinBoundingBox(point3d->points_);
+        // points_colors[indices] = in_box_color
+    }
+    // update points colors
+    // point3d->colors_ = ;
+    // vis.UpdateGeometry(point3d);
+}
+
 void test(void) {
   const std::string DB_CONF = "../bootstrap.yaml";
   YAML::Node config = YAML::LoadFile(DB_CONF);
@@ -131,6 +177,21 @@ void test(void) {
   std::cout << "backbone_file: " << backbone_file << std::endl;
   std::cout << "config: " << model_config << std::endl;
   // std::cout << "data: " << file_name << std::endl;
+
+  // 可视化初始化
+  open3d::visualization::Visualizer vis;
+  vis.CreateVisualizerWindow("Open3D", 1920, 1080);
+  // 调整背景颜色
+  auto mesh_frame = open3d::geometry::TriangleMesh::CreateCoordinateFrame(1.0, Eigen::Vector3d(0, 0, 0));
+  vis.AddGeometry(mesh_frame);
+
+  auto points3d = std::make_shared<open3d::geometry::PointCloud>();
+  // 设置点云大小，背景颜色
+  vis.GetRenderOption().point_size_ = 1;
+  vis.GetRenderOption().background_color_ = {0.05, 0.05, 0.05};
+  vis.GetRenderOption().show_coordinate_frame_ = true;
+  vis.AddGeometry(points3d);
+  bool to_reset = true;
 
   std::ifstream read_txt;
   std::string line_data;
@@ -153,20 +214,41 @@ void test(void) {
                   config["UseDim"].as<int>());
     std::cout << "num points: " << in_num_points << std::endl;
 
-    for (int _ = 0; _ < 2; _++) {
-      std::vector<Box> out_detections;
-      cudaDeviceSynchronize();
-      cp.DoInference(points_array, in_num_points, out_detections);
-      cudaDeviceSynchronize();
-      size_t num_objects = out_detections.size();
-      std::cout << "detected objects: " << num_objects << std::endl;
+    std::vector<Box> out_detections;
+    cudaDeviceSynchronize();
+    cp.DoInference(points_array, in_num_points, out_detections);
+    cudaDeviceSynchronize();
+    size_t num_objects = out_detections.size();
+    std::cout << "detected objects: " << num_objects << std::endl;
 
-      std::string boxes_file_name = config["OutputFile"].as<std::string>();
-      Boxes2Txt(out_detections, boxes_file_name);
+    // 点云数据写入open3d
+    int UseDim = config["UseDim"].as<int>();
+    points3d->points_.clear();
+    points3d->points_.resize(in_num_points);
+    for(int i = 0; i < in_num_points; i++)
+    {
+        points3d->points_[i] << points_array[i * UseDim], points_array[i * UseDim + 1], 
+                              points_array[i * UseDim + 2];
     }
+    vis.UpdateGeometry(points3d);
+    draw_bboxes(vis, points3d, out_detections);
+
+    if(to_reset)
+    {
+        vis.ResetViewPoint(true);
+        to_reset = false;
+    }
+    vis.PollEvents();
+    vis.UpdateRender();
+    // vis.Run();
+
+    // 检测结果写入文件
+    // std::string boxes_file_name = config["OutputFile"].as<std::string>();
+    // Boxes2Txt(out_detections, boxes_file_name);
 
     delete[] points_array;
   }
+  vis.DestroyVisualizerWindow();
 };
 
 int main(int argc, char **argv) {

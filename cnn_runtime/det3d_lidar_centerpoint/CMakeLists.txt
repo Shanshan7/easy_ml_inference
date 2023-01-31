@@ -25,7 +25,7 @@ set(CUDA_INCLUDE_DIRS ${CUDA_TOOLKIT_ROOT_DIR}/${CUDA_INSTALL_TARGET_DIR}/includ
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS_RELEASE "-Wno-deprecated-declarations -O2")
 add_compile_options(-W)
-add_compile_options(-std=c++11)
+# add_compile_options(-std=c++14)
 
 set( SMS 30 32 35 37 50 52 53 60 61 62 70 72 75 87)
 foreach(sm ${SMS})
