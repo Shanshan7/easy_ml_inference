@@ -10,13 +10,13 @@
 
 #define IMAGE_H 1080
 #define IMAGE_W 1920
-#define INPUT_H 640 // 1080
+#define INPUT_H 540 // 1080
 #define INPUT_W 960 // 1920
 #define NUM_CLASSES 10
 #define SCORE_THRESH 0.2f
 #define NMS_THRESH 0.05f
 #define DIR_OFFSET 0.7854f
-#define TOPK 440 // 3645
+#define TOPK 100 // 3645
 #define PI 3.1415926535897932
 
 
@@ -64,10 +64,10 @@ FCOS3D::FCOS3D(const std::string& engine_path)
 	// 			  0.0, 0.0, 1.0; // front2M
     // std::cout << intrinsic_.at<float>(1, 2) << std::endl;
     // intrinsic_.at<float>(1, 2) = intrinsic_.at<float>(1, 2) - (1080-680);
-    cam_to_img(0, 0) = cam_to_img(0, 0) * INPUT_W / IMAGE_W;
-    cam_to_img(0, 2) = cam_to_img(0, 2) * INPUT_W / IMAGE_W;
-    cam_to_img(1, 1) = cam_to_img(1, 1) * INPUT_H / IMAGE_H;
-    cam_to_img(1, 2) = cam_to_img(1, 2) * INPUT_H / IMAGE_H;
+    // cam_to_img(0, 0) = cam_to_img(0, 0) * INPUT_W / IMAGE_W;
+    // cam_to_img(0, 2) = cam_to_img(0, 2) * INPUT_W / IMAGE_W;
+    // cam_to_img(1, 1) = cam_to_img(1, 1) * INPUT_H / IMAGE_H;
+    // cam_to_img(1, 2) = cam_to_img(1, 2) * INPUT_H / IMAGE_H;
 }
 
 FCOS3D::~FCOS3D() 
@@ -390,7 +390,7 @@ void FCOS3D::ShowResult(cv::Mat &input_img)
         }
     }
     cv::imshow("SMOKE_TRT", input_img);
-    cv::waitKey();
+    cv::waitKey(1);
 }
 
 void FCOS3D::PointsImg2Cam() 
